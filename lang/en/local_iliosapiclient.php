@@ -5,4 +5,4 @@
  *
  * @package local_iliosapiclient
  */
-$string['pluginname'] = 'Kaltura package libraries';
+$string['pluginname'] = 'Ilios API client';
