@@ -66,6 +66,7 @@ class ilios_client extends \curl {
     private $_accesstoken = null;
 
     /**
+     * Constructor.
      * @param string    $hostname
      * @param string    $clientid
      * @param string    $clientsecret
@@ -85,14 +86,14 @@ class ilios_client extends \curl {
         }
     }
 
-
-
     /**
      * Get Ilios json object and return PHP object
      *
-     * @param string $object API object name (camel case)
-     * @param array  $filters   e.g. array('id' => 3)
-     * @param array  $sortorder e.g. array('title' => "ASC")
+     * @param string       $object API object name (camel case)
+     * @param array|string $filters   e.g. array('id' => 3)
+     * @param array|string $sortorder e.g. array('title' => "ASC")
+     * @return array
+     * @throws \moodle_exception
      */
     public function get($object, $filters='', $sortorder='') {
 
@@ -166,9 +167,9 @@ class ilios_client extends \curl {
 
 
     /**
-     * Get Ilios json object by ID and return PHP object
+     * Get Ilios json object by ID and return PHP object.
      *
-     * @param string $object API object name (camel case)
+     * @param string       $object API object name (camel case)
      * @param string|array $id e.g. array(1,2,3)
      * @return array|null
      */
@@ -186,7 +187,7 @@ class ilios_client extends \curl {
     /**
      * Get Ilios json object by IDs and return PHP object.
      *
-     * @param string $object API object name (camel case)
+     * @param string       $object API object name (camel case)
      * @param string|array $ids e.g. array(1,2,3)
      * @return array
      * @throws \moodle_exception
@@ -322,7 +323,7 @@ class ilios_client extends \curl {
     }
 
     /**
-     * A method that returns the current access token
+     * A method that returns the current access token.
      * @return \stdClass $accesstoken
      */
     public function getAccessToken() {
