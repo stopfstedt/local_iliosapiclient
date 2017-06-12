@@ -19,21 +19,50 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class ilios_client extends \curl {
-    /** @const API URL */
-    const API_URL = '/api/v1';
-    const AUTH_URL = '/auth';
-    const TOKEN_REFRESH_RATE = 86400;  // 24 * 60 * 60 = 24 hours
-    const TOKEN_TTL = 'P7D';           // 7 days
 
-    /** var string ilios hostname */
+    /**
+     * @var string Path-prefix to API routes.
+     */
+    const API_URL = '/api/v1';
+
+    /**
+     * @var string Authentication route path.
+     */
+    const AUTH_URL = '/auth';
+
+    /**
+     * @var int The token refresh interval.
+     */
+    const TOKEN_REFRESH_RATE = 86400; // 24 * 60 * 60 = 24 hours
+
+    /**
+     * @var string ISO 8601 formatted TTL for auth token.
+     */
+    const TOKEN_TTL = 'P7D'; // 7 days
+
+    /**
+     * @var string ilios hostname
+     */
     private $_hostname = '';
-    /** var string API base URL */
+
+    /**
+     * @var string API base URL
+     */
     private $_apibaseurl = '';
-    /** var string The client ID. */
+
+    /**
+     * @var string The client ID.
+     */
     private $_clientid = '';
-    /** var string The client secret. */
+
+    /**
+     * @var string The client secret.
+     */
     private $_clientsecret = '';
-    /** var string JWT token */
+
+    /**
+     * @var string JWT token
+     */
     private $_accesstoken = null;
 
     /**
