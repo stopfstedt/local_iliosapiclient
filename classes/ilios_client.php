@@ -66,12 +66,10 @@ class ilios_client extends \curl {
     private $_accesstoken = null;
 
     /**
-     * Constructor.
-     *
-     * @param string   $hostname
-     * @param string   $clientid
-     * @param string   $clientsecret
-     * @param stdClass $accesstoken
+     * @param string    $hostname
+     * @param string    $clientid
+     * @param string    $clientsecret
+     * @param \stdClass $accesstoken
      */
     public function __construct($hostname, $clientid = '', $clientsecret = '', $accesstoken = null) {
         parent::__construct();
@@ -99,20 +97,20 @@ class ilios_client extends \curl {
     public function get($object, $filters='', $sortorder='') {
 
         if (empty($this->_accesstoken)) {
-            throw new moodle_exception( 'Error: client token is not set.' );
+            throw new \moodle_exception( 'Error: client token is not set.' );
         }
 
         if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
             $this->_accesstoken = $this->get_new_token();
 
             if (empty($this->_accesstoken)) {
-                throw new moodle_exception( 'Error: unable to renew access token.' );
+                throw new \moodle_exception( 'Error: unable to renew access token.' );
             }
         }
 
         $token = $this->_accesstoken->token;
         $this->resetHeader();
-        $this->setHeader( 'X-JWT-Authorization: Token ' . $token );
+        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
         $url = $this->_apibaseurl . '/' . strtolower($object);
         $filterstring = '';
         if (is_array($filters)) {
@@ -156,9 +154,9 @@ class ilios_client extends \curl {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message );
+                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message );
                 } else {
-                    throw new moodle_exception( print_r($obj, true) );
+                    throw new \moodle_exception( print_r($obj, true) );
                 }
             }
         } while ($obj !== null);
@@ -171,7 +169,8 @@ class ilios_client extends \curl {
      * Get Ilios json object by ID and return PHP object
      *
      * @param string $object API object name (camel case)
-     * @param string or array  $ids   e.g. array(1,2,3)
+     * @param string|array $id e.g. array(1,2,3)
+     * @return array|null
      */
     public function getbyid($object, $id) {
         if (is_numeric($id)) {
@@ -185,27 +184,29 @@ class ilios_client extends \curl {
     }
 
     /**
-     * Get Ilios json object by IDs and return PHP object
+     * Get Ilios json object by IDs and return PHP object.
      *
      * @param string $object API object name (camel case)
-     * @param string or array  $ids   e.g. array(1,2,3)
+     * @param string|array $ids e.g. array(1,2,3)
+     * @return array
+     * @throws \moodle_exception
      */
     public function getbyids($object, $ids='') {
         if (empty($this->_accesstoken)) {
-            throw new moodle_exception( 'Error' );
+            throw new \moodle_exception( 'Error' );
         }
 
         if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
             $this->_accesstoken = $this->get_new_token();
 
             if (empty($this->_accesstoken)) {
-                throw new moodle_exception( 'Error' );
+                throw new \moodle_exception( 'Error' );
             }
         }
 
         $token = $this->_accesstoken->token;
         $this->resetHeader();
-        $this->setHeader( 'X-JWT-Authorization: Token ' . $token );
+        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
         $url = $this->_apibaseurl . '/' . strtolower($object);
 
         $filterstrings = array();
@@ -244,9 +245,9 @@ class ilios_client extends \curl {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message);
+                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message);
                 } else {
-                    throw new moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
+                    throw new \moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
                 }
             }
         }
@@ -254,7 +255,8 @@ class ilios_client extends \curl {
     }
 
     /**
-     * Get new token
+     * Get new auth token.
+     * @return \stdClass
      */
     protected function get_new_token() {
         $atoken = null;
@@ -262,13 +264,13 @@ class ilios_client extends \curl {
         // Try refresh the current token first if it is set
         if (!empty($this->_accesstoken) && !empty($this->_accesstoken->token)) {
             $this->resetHeader();
-            $this->setHeader( 'X-JWT-Authorization: Token ' . $this->_accesstoken->token );
+            $this->setHeader(array('X-JWT-Authorization: Token ' . $this->_accesstoken->token));
 
             $result = parent::get($this->_hostname.self::AUTH_URL.'/token'.'?ttl='.self::TOKEN_TTL);
             $parsed_result = $this->parse_result($result);
 
             if (!empty($parsed_result->jwt)) {
-                $atoken = new stdClass;
+                $atoken = new \stdClass();
                 $atoken->token = $parsed_result->jwt;
                 $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
             }
@@ -281,7 +283,7 @@ class ilios_client extends \curl {
             $parsed_result = $this->parse_result($result);
 
             if (!empty($parsed_result->jwt)) {
-                $atoken = new stdClass;
+                $atoken = new \stdClass();
                 $atoken->token = $parsed_result->jwt;
                 $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
             }
@@ -296,22 +298,24 @@ class ilios_client extends \curl {
     }
 
     /**
-     * A method to parse response to get token and token_secret
-     * @param string $str
-     * @return array
+     * Decodes and returns the given JSON-encoded input.
+     *
+     * @param string $str A JSON-encoded string
+     * @return \stdClass The JSON-decoded object representation of the given input.
+     * @throws \moodle_exception
      */
     protected function parse_result($str) {
         if (empty($str)) {
-            throw new moodle_exception('error');
+            throw new \moodle_exception('error');
         }
         $result = json_decode($str);
 
         if (empty($result)) {
-            throw new moodle_exception('error');
+            throw new \moodle_exception('error');
         }
 
         if (isset($result->errors)) {
-            throw new moodle_exception(print_r($result->errors[0],true));
+            throw new \moodle_exception(print_r($result->errors[0],true));
         }
 
         return $result;
@@ -319,7 +323,7 @@ class ilios_client extends \curl {
 
     /**
      * A method that returns the current access token
-     * @return stdClass $accesstoken
+     * @return \stdClass $accesstoken
      */
     public function getAccessToken() {
         return $this->_accesstoken;
