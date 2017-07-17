@@ -92,10 +92,11 @@ class ilios_client extends \curl {
      * @param string       $object API object name (camel case)
      * @param array|string $filters   e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
+     * @param int          $batchSize Number of objects to retrieve per batch.
      * @return array
      * @throws \moodle_exception
      */
-    public function get($object, $filters='', $sortorder='') {
+    public function get($object, $filters='', $sortorder='', $batchSize = 50) {
 
         if (empty($this->_accesstoken)) {
             throw new \moodle_exception( 'Error: client token is not set.' );
@@ -132,7 +133,7 @@ class ilios_client extends \curl {
             }
         }
 
-        $limit = 50;
+        $limit = $batchSize;
         $offset = 0;
         $retobj = array();
         $obj = null;
