@@ -8,6 +8,7 @@ namespace local_iliosapiclient;
 
 defined('MOODLE_INTERNAL') || die();
 
+/* @global $CFG */
 require_once($CFG->dirroot . '/lib/filelib.php');
 
 /**
