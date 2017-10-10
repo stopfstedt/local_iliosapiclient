@@ -22,6 +22,11 @@ require_once($CFG->dirroot . '/lib/filelib.php');
 class ilios_client extends \curl {
 
     /**
+     * Default batch size ("limit") of records to pull per request from the API.
+     * @var int
+     */
+    const DEFAULT_BATCH_SIZE = 1000;
+    /**
      * @var string Path-prefix to API routes.
      */
     const API_URL = '/api/v1';
@@ -97,7 +102,7 @@ class ilios_client extends \curl {
      * @return array
      * @throws \moodle_exception
      */
-    public function get($object, $filters='', $sortorder='', $batchSize = 50) {
+    public function get($object, $filters='', $sortorder='', $batchSize = self::DEFAULT_BATCH_SIZE) {
 
         if (empty($this->_accesstoken)) {
             throw new \moodle_exception( 'Error: client token is not set.' );
