@@ -182,7 +182,7 @@ class ilios_client extends \curl {
      */
     public function getbyid($object, $id) {
         if (is_numeric($id)) {
-            $result = $this->getbyids($object, $id);
+            $result = $this->getbyids($object, $id, $batchSize);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -196,10 +196,11 @@ class ilios_client extends \curl {
      *
      * @param string       $object API object name (camel case)
      * @param string|array $ids e.g. array(1,2,3)
+     * @param int          $batchSize
      * @return array
      * @throws \moodle_exception
      */
-    public function getbyids($object, $ids='') {
+    public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
         if (empty($this->_accesstoken)) {
             throw new \moodle_exception( 'Error' );
         }
@@ -221,9 +222,8 @@ class ilios_client extends \curl {
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
         } elseif (is_array($ids)) {
-            // fetch 10 at a time
             $offset  = 0;
-            $length  = 10;
+            $length  = $batchSize;
             $remains = count($ids);
             do {
                 $slicedids = array_slice($ids, $offset, $length);
