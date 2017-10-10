@@ -182,7 +182,7 @@ class ilios_client extends \curl {
      */
     public function getbyid($object, $id) {
         if (is_numeric($id)) {
-            $result = $this->getbyids($object, $id, $batchSize);
+            $result = $this->getbyids($object, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
