@@ -22,6 +22,11 @@ require_once($CFG->dirroot . '/lib/filelib.php');
 class ilios_client extends \curl {
 
     /**
+     * Default batch size ("limit") of records to pull per request from the API.
+     * @var int
+     */
+    const DEFAULT_BATCH_SIZE = 1000;
+    /**
      * @var string Path-prefix to API routes.
      */
     const API_URL = '/api/v1';
@@ -97,7 +102,7 @@ class ilios_client extends \curl {
      * @return array
      * @throws \moodle_exception
      */
-    public function get($object, $filters='', $sortorder='', $batchSize = 50) {
+    public function get($object, $filters='', $sortorder='', $batchSize = self::DEFAULT_BATCH_SIZE) {
 
         if (empty($this->_accesstoken)) {
             throw new \moodle_exception( 'Error: client token is not set.' );
@@ -177,7 +182,7 @@ class ilios_client extends \curl {
      */
     public function getbyid($object, $id) {
         if (is_numeric($id)) {
-            $result = $this->getbyids($object, $id);
+            $result = $this->getbyids($object, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -191,10 +196,11 @@ class ilios_client extends \curl {
      *
      * @param string       $object API object name (camel case)
      * @param string|array $ids e.g. array(1,2,3)
+     * @param int          $batchSize
      * @return array
      * @throws \moodle_exception
      */
-    public function getbyids($object, $ids='') {
+    public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
         if (empty($this->_accesstoken)) {
             throw new \moodle_exception( 'Error' );
         }
@@ -216,9 +222,8 @@ class ilios_client extends \curl {
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
         } elseif (is_array($ids)) {
-            // fetch 10 at a time
             $offset  = 0;
-            $length  = 10;
+            $length  = $batchSize;
             $remains = count($ids);
             do {
                 $slicedids = array_slice($ids, $offset, $length);
