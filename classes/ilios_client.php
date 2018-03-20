@@ -221,7 +221,7 @@ class ilios_client extends \curl {
         $filterstrings = array();
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
-        } elseif (is_array($ids)) {
+        } elseif (is_array($ids) && !empty($ids)) {
             $offset  = 0;
             $length  = $batchSize;
             $remains = count($ids);
