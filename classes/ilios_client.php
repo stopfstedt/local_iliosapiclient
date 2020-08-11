@@ -29,7 +29,7 @@ class ilios_client extends \curl {
     /**
      * @var string Path-prefix to API routes.
      */
-    const API_URL = '/api/v1';
+    const API_URL = '/api/v3';
 
     /**
      * @var string Authentication route path.
