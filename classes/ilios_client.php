@@ -6,6 +6,9 @@
  */
 namespace local_iliosapiclient;
 
+use Firebase\JWT\JWT;
+use moodle_exception;
+
 defined('MOODLE_INTERNAL') || die();
 
 /* @global $CFG */
@@ -84,12 +87,7 @@ class ilios_client extends \curl {
         $this->_apibaseurl = $this->_hostname . self::API_URL;
         $this->_clientid = $clientid;
         $this->_clientsecret = $clientsecret;
-
-        if (empty($accesstoken)) {
-            $this->_accesstoken = $this->get_new_token();
-        } else {
-            $this->_accesstoken = $accesstoken;
-        }
+        $this->_accesstoken = $accesstoken;
     }
 
     /**
@@ -100,22 +98,11 @@ class ilios_client extends \curl {
      * @param array|string $sortorder e.g. array('title' => "ASC")
      * @param int          $batchSize Number of objects to retrieve per batch.
      * @return array
-     * @throws \moodle_exception
+     * @throws moodle_exception
      */
     public function get($object, $filters='', $sortorder='', $batchSize = self::DEFAULT_BATCH_SIZE) {
 
-        if (empty($this->_accesstoken)) {
-            throw new \moodle_exception( 'Error: client token is not set.' );
-        }
-
-        if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
-            $this->_accesstoken = $this->get_new_token();
-
-            if (empty($this->_accesstoken)) {
-                throw new \moodle_exception( 'Error: unable to renew access token.' );
-            }
-        }
-
+        $this->validate_access_token();
         $token = $this->_accesstoken->token;
         $this->resetHeader();
         $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
@@ -162,9 +149,9 @@ class ilios_client extends \curl {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message );
+                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message );
                 } else {
-                    throw new \moodle_exception( print_r($obj, true) );
+                    throw new moodle_exception( print_r($obj, true) );
                 }
             }
         } while ($obj !== null);
@@ -198,21 +185,10 @@ class ilios_client extends \curl {
      * @param string|array $ids e.g. array(1,2,3)
      * @param int          $batchSize
      * @return array
-     * @throws \moodle_exception
+     * @throws moodle_exception
      */
     public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
-        if (empty($this->_accesstoken)) {
-            throw new \moodle_exception( 'Error' );
-        }
-
-        if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
-            $this->_accesstoken = $this->get_new_token();
-
-            if (empty($this->_accesstoken)) {
-                throw new \moodle_exception( 'Error' );
-            }
-        }
-
+        $this->validate_access_token();
         $token = $this->_accesstoken->token;
         $this->resetHeader();
         $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
@@ -253,9 +229,9 @@ class ilios_client extends \curl {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message);
+                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message);
                 } else {
-                    throw new \moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
+                    throw new moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
                 }
             }
         }
@@ -310,20 +286,20 @@ class ilios_client extends \curl {
      *
      * @param string $str A JSON-encoded string
      * @return \stdClass The JSON-decoded object representation of the given input.
-     * @throws \moodle_exception
+     * @throws moodle_exception
      */
     protected function parse_result($str) {
         if (empty($str)) {
-            throw new \moodle_exception('error');
+            throw new moodle_exception('error');
         }
         $result = json_decode($str);
 
         if (empty($result)) {
-            throw new \moodle_exception('error');
+            throw new moodle_exception('error');
         }
 
         if (isset($result->errors)) {
-            throw new \moodle_exception(print_r($result->errors[0],true));
+            throw new moodle_exception(print_r($result->errors[0],true));
         }
 
         return $result;
@@ -335,6 +311,46 @@ class ilios_client extends \curl {
      */
     public function getAccessToken() {
         return $this->_accesstoken;
+    }
+
+    /**
+     * Validates the given access token.
+     * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
+     * @return void
+     * @throws moodle_exception
+     */
+    protected function validate_access_token(): void
+    {
+        // check if token is set
+        if (!$this->_accesstoken || !$this->_accesstoken->token) {
+            throw new moodle_exception('access token is not set');
+        }
+
+        // decode token payload. will throw an exception if this fails.
+        $token_payload = $this->get_values_from_access_token($this->_accesstoken->token);
+
+        // check if token is expired
+        if ($token_payload['exp'] < time()) {
+            throw new moodle_exception('token is expired.');
+        }
+
+        // @todo check if token is service-account based - the `tid` attribute must be present.
+    }
+
+    /**
+     * Decodes and retrieves the payload of the given access token.
+     * @param string $jwt the token
+     * @return array the token payload as key/value pairs.
+     * @throws moodle_exception
+     */
+    protected function get_values_from_access_token(string $jwt): array
+    {
+        $parts = explode('.', $jwt);
+        $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
+        if (!$payload) {
+            throw new moodle_exception('failed to decode token');
+        }
+        return $payload;
     }
 }
 
