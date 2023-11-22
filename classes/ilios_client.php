@@ -37,33 +37,21 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
-     * @var string ilios hostname
+     * @var curl the cURL client.
      */
-    private string $_hostname;
-
-    /**
-     * @var string API base URL
-     */
-    private string $_apibaseurl;
-
-    /**
-     * @var stdClass|null the access token wrapper object
-     */
-    private ?stdClass $_accesstoken;
-
-
     protected curl $curl;
 
     /**
-     * Constructor.
-     * @param string    $hostname
-     * @param ?stdClass $accesstoken
+     * @param string $ilios_base_url The Ilios base URL.
+     * @param ?stdClass $accesstoken the access token wrapper object
      */
-    public function __construct(string $hostname, ?stdClass $accesstoken = null) {
-        $this->_hostname = $hostname;
-        $this->_apibaseurl = $this->_hostname . self::API_URL;
-        $this->_accesstoken = $accesstoken;
+    public function __construct(protected string $ilios_base_url, protected ?stdClass $accesstoken = null) {
         $this->curl = new curl();
+    }
+
+    protected function get_api_base_url(): string
+    {
+        return $this->ilios_base_url . self::API_URL;
     }
 
     /**
@@ -79,10 +67,10 @@ class ilios_client {
     public function get(string $object, mixed $filters='', mixed $sortorder='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token();
-        $token = $this->_accesstoken->token;
+        $token = $this->accesstoken->token;
         $this->curl->resetHeader();
         $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
-        $url = $this->_apibaseurl . '/' . strtolower($object);
+        $url = $this->get_api_base_url() . '/' . strtolower($object);
         $filterstring = '';
         if (is_array($filters)) {
             foreach ($filters as $param => $value) {
@@ -165,10 +153,10 @@ class ilios_client {
      */
     public function getbyids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token();
-        $token = $this->_accesstoken->token;
+        $token = $this->accesstoken->token;
         $this->curl->resetHeader();
         $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
-        $url = $this->_apibaseurl . '/' . strtolower($object);
+        $url = $this->get_api_base_url() . '/' . strtolower($object);
 
         $filterstrings = array();
         if (is_numeric($ids)) {
@@ -245,7 +233,7 @@ class ilios_client {
      */
     public function getAccessToken(): stdClass {
         trigger_error('Method ' . __METHOD__ . ' is deprecated', E_USER_DEPRECATED);
-        return $this->_accesstoken;
+        return $this->accesstoken;
     }
 
     /**
@@ -256,12 +244,12 @@ class ilios_client {
      */
     protected function validate_access_token(): void {
         // check if token is set
-        if (!$this->_accesstoken || !$this->_accesstoken->token) {
+        if (!$this->accesstoken || !$this->accesstoken->token) {
             throw new moodle_exception('access token is not set');
         }
 
         // decode token payload. will throw an exception if this fails.
-        $token_payload = $this->get_values_from_access_token($this->_accesstoken->token);
+        $token_payload = $this->get_values_from_access_token($this->accesstoken->token);
 
         // check if token is expired
         if ($token_payload['exp'] < time()) {
