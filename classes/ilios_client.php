@@ -125,15 +125,23 @@ class ilios_client {
 
 
     /**
-     * Get Ilios json object by ID and return PHP object.
-     *
-     * @param string       $object API object name (camel case)
-     * @param string|array $id e.g. array(1,2,3)
-     * @return mixed
+     * @deprecated
      */
     public function getbyid(string $object, mixed $id): mixed {
+        trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_id() instead. ', E_USER_DEPRECATED);
+        return $this->get_by_id($object, $id);
+    }
+
+    /**
+     * Get Ilios json object by ID and return PHP object.
+     * @param string $object API object name (camel case)
+     * @param string|array $id e.g. array(1,2,3)
+     * @return mixed
+     * @throws moodle_exception
+     */
+    public function get_by_id(string $object, mixed $id): mixed {
         if (is_numeric($id)) {
-            $result = $this->getbyids($object, $id, 1);
+            $result = $this->get_by_ids($object, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -143,6 +151,14 @@ class ilios_client {
     }
 
     /**
+     * @deprecated
+     */
+    public function getbyids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+        trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_ids() instead. ', E_USER_DEPRECATED);
+        return $this->get_by_ids($object, $ids, $batchSize);
+    }
+
+        /**
      * Get Ilios json object by IDs and return PHP object.
      *
      * @param string       $object API object name (camel case)
@@ -151,7 +167,7 @@ class ilios_client {
      * @return array
      * @throws moodle_exception
      */
-    public function getbyids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function get_by_ids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token();
         $token = $this->accesstoken->token;
         $this->curl->resetHeader();
