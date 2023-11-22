@@ -42,10 +42,10 @@ class ilios_client {
     protected curl $curl;
 
     /**
-     * @param string $ilios_base_url The Ilios base URL.
-     * @param ?stdClass $accesstoken the access token wrapper object
+     * @param string $ilios_base_url The Ilios base URL
+     * @param string $access_token the Ilios API access token
      */
-    public function __construct(protected string $ilios_base_url, protected ?stdClass $accesstoken = null) {
+    public function __construct(protected string $ilios_base_url, protected string $access_token) {
         $this->curl = new curl();
     }
 
@@ -67,9 +67,8 @@ class ilios_client {
     public function get(string $object, mixed $filters='', mixed $sortorder='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token();
-        $token = $this->accesstoken->token;
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->access_token));
         $url = $this->get_api_base_url() . '/' . strtolower($object);
         $filterstring = '';
         if (is_array($filters)) {
@@ -169,9 +168,8 @@ class ilios_client {
      */
     public function get_by_ids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token();
-        $token = $this->accesstoken->token;
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->access_token));
         $url = $this->get_api_base_url() . '/' . strtolower($object);
 
         $filterstrings = array();
@@ -243,29 +241,19 @@ class ilios_client {
     }
 
     /**
-     * @deprecated
-     * A method that returns the current access token.
-     * @return stdClass $accesstoken
-     */
-    public function getAccessToken(): stdClass {
-        trigger_error('Method ' . __METHOD__ . ' is deprecated', E_USER_DEPRECATED);
-        return $this->accesstoken;
-    }
-
-    /**
      * Validates the given access token.
      * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
      * @return void
      * @throws moodle_exception
      */
     protected function validate_access_token(): void {
-        // check if token is set
-        if (!$this->accesstoken || !$this->accesstoken->token) {
+        // check if token is empty
+        if (empty($this->access_token)) {
             throw new moodle_exception('access token is not set');
         }
 
         // decode token payload. will throw an exception if this fails.
-        $token_payload = $this->get_values_from_access_token($this->accesstoken->token);
+        $token_payload = $this->get_values_from_access_token($this->access_token);
 
         // check if token is expired
         if ($token_payload['exp'] < time()) {
