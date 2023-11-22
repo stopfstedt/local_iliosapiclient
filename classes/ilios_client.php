@@ -6,6 +6,7 @@
  */
 namespace local_iliosapiclient;
 
+use curl;
 use Firebase\JWT\JWT;
 use moodle_exception;
 
@@ -22,7 +23,7 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  * @copyright  2017 The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class ilios_client extends \curl {
+class ilios_client {
 
     /**
      * Default batch size ("limit") of records to pull per request from the API.
@@ -74,6 +75,9 @@ class ilios_client extends \curl {
      */
     private $_accesstoken = null;
 
+
+    protected curl $curl;
+
     /**
      * Constructor.
      * @param string    $hostname
@@ -82,12 +86,12 @@ class ilios_client extends \curl {
      * @param \stdClass $accesstoken
      */
     public function __construct($hostname, $clientid = '', $clientsecret = '', $accesstoken = null) {
-        parent::__construct();
         $this->_hostname = $hostname;
         $this->_apibaseurl = $this->_hostname . self::API_URL;
         $this->_clientid = $clientid;
         $this->_clientsecret = $clientsecret;
         $this->_accesstoken = $accesstoken;
+        $this->curl = new curl();
     }
 
     /**
@@ -104,8 +108,8 @@ class ilios_client extends \curl {
 
         $this->validate_access_token();
         $token = $this->_accesstoken->token;
-        $this->resetHeader();
-        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
+        $this->curl->resetHeader();
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
         $url = $this->_apibaseurl . '/' . strtolower($object);
         $filterstring = '';
         if (is_array($filters)) {
@@ -133,7 +137,7 @@ class ilios_client extends \curl {
 
         do {
             $url .= "?limit=$limit&offset=$offset".$filterstring;
-            $results = parent::get($url);
+            $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
             if ($obj !== null && isset($obj->$object)) {
@@ -190,8 +194,8 @@ class ilios_client extends \curl {
     public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
         $this->validate_access_token();
         $token = $this->_accesstoken->token;
-        $this->resetHeader();
-        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
+        $this->curl->resetHeader();
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $token));
         $url = $this->_apibaseurl . '/' . strtolower($object);
 
         $filterstrings = array();
@@ -216,7 +220,7 @@ class ilios_client extends \curl {
 
         $retobj = array();
         foreach ($filterstrings as $filterstr) {
-            $results = parent::get($url.$filterstr);
+            $results = $this->curl->get($url.$filterstr);
             $obj = $this->parse_result($results);
 
             // if ($obj !== null && isset($obj->$object) && !empty($obj->$object)) {
@@ -247,10 +251,10 @@ class ilios_client extends \curl {
 
         // Try refresh the current token first if it is set
         if (!empty($this->_accesstoken) && !empty($this->_accesstoken->token)) {
-            $this->resetHeader();
-            $this->setHeader(array('X-JWT-Authorization: Token ' . $this->_accesstoken->token));
+            $this->curl->resetHeader();
+            $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->_accesstoken->token));
 
-            $result = parent::get($this->_hostname.self::AUTH_URL.'/token'.'?ttl='.self::TOKEN_TTL);
+            $result = $this->curl->post($this->_hostname.self::AUTH_URL.'/token'.'?ttl='.self::TOKEN_TTL);
             $parsed_result = $this->parse_result($result);
 
             if (!empty($parsed_result->jwt)) {
@@ -263,7 +267,7 @@ class ilios_client extends \curl {
         // If token failed to refresh, use clientid and secret
         if (empty($atoken) && !empty($this->_clientid)) {
             $params = array('password' => $this->_clientsecret, 'username' => $this->_clientid);
-            $result = parent::post($this->_hostname . self::AUTH_URL . '/login', $params);
+            $result = $this->curl->post($this->_hostname . self::AUTH_URL . '/login', $params);
             $parsed_result = $this->parse_result($result);
 
             if (!empty($parsed_result->jwt)) {
