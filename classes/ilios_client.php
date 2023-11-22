@@ -37,21 +37,6 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
-     * @var string Authentication route path.
-     */
-    const AUTH_URL = '/auth';
-
-    /**
-     * @var int The token refresh interval.
-     */
-    const TOKEN_REFRESH_RATE = 86400; // 24 * 60 * 60 = 24 hours
-
-    /**
-     * @var string ISO 8601 formatted TTL for auth token.
-     */
-    const TOKEN_TTL = 'P7D'; // 7 days
-
-    /**
      * @var string ilios hostname
      */
     private string $_hostname;
