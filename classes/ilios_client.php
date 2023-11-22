@@ -22,7 +22,8 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  *
  * @package    local_iliosapiclient
  * @author     Carson Tam <carson.tam@ucsf.edu>
- * @copyright  2017 The Regents of the University of California
+ * @author     Stefan Topfstedt <stefan.topfstedt@ucsf.edu>
+ * @copyright  The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class ilios_client {
