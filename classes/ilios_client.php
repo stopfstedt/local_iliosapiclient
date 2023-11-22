@@ -4,6 +4,7 @@
  *
  * @package local_iliosapiclient
  */
+
 namespace local_iliosapiclient;
 
 use curl;
@@ -28,6 +29,7 @@ class ilios_client {
 
     /**
      * Default batch size ("limit") of records to pull per request from the API.
+     *
      * @var int
      */
     const DEFAULT_BATCH_SIZE = 1000;
@@ -49,22 +51,22 @@ class ilios_client {
         $this->curl = new curl();
     }
 
-    protected function get_api_base_url(): string
-    {
+    protected function get_api_base_url(): string {
         return $this->ilios_base_url . self::API_URL;
     }
 
     /**
      * Queries the Ilios API on a given endpoint, with given filters, sort orders, and size limits.
      *
-     * @param string       $object the API endpoint/entity name
-     * @param array|string $filters   e.g. array('id' => 3)
+     * @param string $object the API endpoint/entity name
+     * @param array|string $filters e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
-     * @param int          $batchSize Number of objects to retrieve per batch.
+     * @param int $batchSize Number of objects to retrieve per batch.
      * @return array a list of retrieved data points
      * @throws moodle_exception
      */
-    public function get(string $object, mixed $filters = '', mixed $sortorder = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function get(string $object, mixed $filters = '', mixed $sortorder = '',
+            int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token();
         $this->curl->resetHeader();
@@ -73,7 +75,7 @@ class ilios_client {
         $filterstring = '';
         if (is_array($filters)) {
             foreach ($filters as $param => $value) {
-                if (is_array( $value )) {
+                if (is_array($value)) {
                     foreach ($value as $val) {
                         $filterstring .= "&filters[$param][]=$val";
                     }
@@ -85,7 +87,7 @@ class ilios_client {
 
         if (is_array($sortorder)) {
             foreach ($sortorder as $param => $value) {
-                $filterstring .="&order_by[$param]=$value";
+                $filterstring .= "&order_by[$param]=$value";
             }
         }
 
@@ -95,7 +97,7 @@ class ilios_client {
         $obj = null;
 
         do {
-            $url .= "?limit=$limit&offset=$offset".$filterstring;
+            $url .= "?limit=$limit&offset=$offset" . $filterstring;
             $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
@@ -112,16 +114,15 @@ class ilios_client {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message );
+                    throw new moodle_exception('Error ' . $obj->code . ': ' . $obj->message);
                 } else {
-                    throw new moodle_exception( print_r($obj, true) );
+                    throw new moodle_exception(print_r($obj, true));
                 }
             }
         } while ($obj !== null);
 
         return $retobj;
     }
-
 
     /**
      * @deprecated
@@ -133,6 +134,7 @@ class ilios_client {
 
     /**
      * Get Ilios json object by ID and return PHP object.
+     *
      * @param string $object API object name (camel case)
      * @param string|array $id e.g. array(1,2,3)
      * @return mixed
@@ -152,21 +154,21 @@ class ilios_client {
     /**
      * @deprecated
      */
-    public function getbyids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function getbyids(string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_ids() instead. ', E_USER_DEPRECATED);
         return $this->get_by_ids($object, $ids, $batchSize);
     }
 
-        /**
+    /**
      * Get Ilios json object by IDs and return PHP object.
      *
-     * @param string       $object API object name (camel case)
+     * @param string $object API object name (camel case)
      * @param string|array $ids e.g. array(1,2,3)
-     * @param int          $batchSize
+     * @param int $batchSize
      * @return array
      * @throws moodle_exception
      */
-    public function get_by_ids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function get_by_ids(string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token();
         $this->curl->resetHeader();
         $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->access_token));
@@ -175,9 +177,9 @@ class ilios_client {
         $filterstrings = array();
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
-        } elseif (is_array($ids) && !empty($ids)) {
-            $offset  = 0;
-            $length  = $batchSize;
+        } else if (is_array($ids) && !empty($ids)) {
+            $offset = 0;
+            $length = $batchSize;
             $remains = count($ids);
             do {
                 $slicedids = array_slice($ids, $offset, $length);
@@ -194,7 +196,7 @@ class ilios_client {
 
         $retobj = array();
         foreach ($filterstrings as $filterstr) {
-            $results = $this->curl->get($url.$filterstr);
+            $results = $this->curl->get($url . $filterstr);
             $obj = $this->parse_result($results);
 
             // if ($obj !== null && isset($obj->$object) && !empty($obj->$object)) {
@@ -207,9 +209,9 @@ class ilios_client {
                 }
             } else {
                 if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception( 'Error '.$obj->code.': '.$obj->message);
+                    throw new moodle_exception('Error ' . $obj->code . ': ' . $obj->message);
                 } else {
-                    throw new moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
+                    throw new moodle_exception("Cannot find $object object in " . print_r($obj, true));
                 }
             }
         }
@@ -234,7 +236,7 @@ class ilios_client {
         }
 
         if (isset($result->errors)) {
-            throw new moodle_exception(print_r($result->errors[0],true));
+            throw new moodle_exception(print_r($result->errors[0], true));
         }
 
         return $result;
@@ -243,6 +245,7 @@ class ilios_client {
     /**
      * Validates the given access token.
      * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
+     *
      * @return void
      * @throws moodle_exception
      */
@@ -265,6 +268,7 @@ class ilios_client {
 
     /**
      * Decodes and retrieves the payload of the given access token.
+     *
      * @param string $jwt the token
      * @return array the token payload as key/value pairs.
      * @throws moodle_exception
