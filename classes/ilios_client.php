@@ -243,49 +243,6 @@ class ilios_client {
     }
 
     /**
-     * Get new auth token.
-     * @return \stdClass
-     */
-    protected function get_new_token() {
-        $atoken = null;
-
-        // Try refresh the current token first if it is set
-        if (!empty($this->_accesstoken) && !empty($this->_accesstoken->token)) {
-            $this->curl->resetHeader();
-            $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->_accesstoken->token));
-
-            $result = $this->curl->post($this->_hostname.self::AUTH_URL.'/token'.'?ttl='.self::TOKEN_TTL);
-            $parsed_result = $this->parse_result($result);
-
-            if (!empty($parsed_result->jwt)) {
-                $atoken = new \stdClass();
-                $atoken->token = $parsed_result->jwt;
-                $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
-            }
-        }
-
-        // If token failed to refresh, use clientid and secret
-        if (empty($atoken) && !empty($this->_clientid)) {
-            $params = array('password' => $this->_clientsecret, 'username' => $this->_clientid);
-            $result = $this->curl->post($this->_hostname . self::AUTH_URL . '/login', $params);
-            $parsed_result = $this->parse_result($result);
-
-            if (!empty($parsed_result->jwt)) {
-                $atoken = new \stdClass();
-                $atoken->token = $parsed_result->jwt;
-                $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
-            }
-        }
-
-        // If we still could not get a new token, just return the current one (or should we return null?)
-        if (empty($atoken)) {
-            return $this->_accesstoken;
-        } else {
-            return $atoken;
-        }
-    }
-
-    /**
      * Decodes and returns the given JSON-encoded input.
      *
      * @param string $str A JSON-encoded string
