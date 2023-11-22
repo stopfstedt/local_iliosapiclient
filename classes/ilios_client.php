@@ -9,6 +9,7 @@ namespace local_iliosapiclient;
 use curl;
 use Firebase\JWT\JWT;
 use moodle_exception;
+use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -53,27 +54,27 @@ class ilios_client {
     /**
      * @var string ilios hostname
      */
-    private $_hostname = '';
+    private string $_hostname;
 
     /**
      * @var string API base URL
      */
-    private $_apibaseurl = '';
+    private string $_apibaseurl;
 
     /**
      * @var string The client ID.
      */
-    private $_clientid = '';
+    private string $_clientid;
 
     /**
      * @var string The client secret.
      */
-    private $_clientsecret = '';
+    private string $_clientsecret;
 
     /**
-     * @var string JWT token
+     * @var stdClass|null the access token wrapper object
      */
-    private $_accesstoken = null;
+    private ?stdClass $_accesstoken;
 
 
     protected curl $curl;
@@ -83,9 +84,9 @@ class ilios_client {
      * @param string    $hostname
      * @param string    $clientid
      * @param string    $clientsecret
-     * @param \stdClass $accesstoken
+     * @param ?stdClass $accesstoken
      */
-    public function __construct($hostname, $clientid = '', $clientsecret = '', $accesstoken = null) {
+    public function __construct(string $hostname, string $clientid = '', string $clientsecret = '', ?stdClass $accesstoken = null) {
         $this->_hostname = $hostname;
         $this->_apibaseurl = $this->_hostname . self::API_URL;
         $this->_clientid = $clientid;
@@ -104,7 +105,7 @@ class ilios_client {
      * @return array
      * @throws moodle_exception
      */
-    public function get($object, $filters='', $sortorder='', $batchSize = self::DEFAULT_BATCH_SIZE) {
+    public function get(string $object, mixed $filters='', mixed $sortorder='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token();
         $token = $this->_accesstoken->token;
@@ -169,9 +170,9 @@ class ilios_client {
      *
      * @param string       $object API object name (camel case)
      * @param string|array $id e.g. array(1,2,3)
-     * @return array|null
+     * @return mixed
      */
-    public function getbyid($object, $id) {
+    public function getbyid(string $object, mixed $id): mixed {
         if (is_numeric($id)) {
             $result = $this->getbyids($object, $id, 1);
 
@@ -191,7 +192,7 @@ class ilios_client {
      * @return array
      * @throws moodle_exception
      */
-    public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
+    public function getbyids(string $object, mixed $ids='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token();
         $token = $this->_accesstoken->token;
         $this->curl->resetHeader();
@@ -246,10 +247,10 @@ class ilios_client {
      * Decodes and returns the given JSON-encoded input.
      *
      * @param string $str A JSON-encoded string
-     * @return \stdClass The JSON-decoded object representation of the given input.
+     * @return stdClass The JSON-decoded object representation of the given input.
      * @throws moodle_exception
      */
-    protected function parse_result($str) {
+    protected function parse_result(string $str): stdClass {
         if (empty($str)) {
             throw new moodle_exception('error');
         }
@@ -269,9 +270,9 @@ class ilios_client {
     /**
      * @deprecated
      * A method that returns the current access token.
-     * @return \stdClass $accesstoken
+     * @return stdClass $accesstoken
      */
-    public function getAccessToken() {
+    public function getAccessToken(): stdClass {
         trigger_error('Method ' . __METHOD__ . ' is deprecated', E_USER_DEPRECATED);
         return $this->_accesstoken;
     }
@@ -282,8 +283,7 @@ class ilios_client {
      * @return void
      * @throws moodle_exception
      */
-    protected function validate_access_token(): void
-    {
+    protected function validate_access_token(): void {
         // check if token is set
         if (!$this->_accesstoken || !$this->_accesstoken->token) {
             throw new moodle_exception('access token is not set');
@@ -306,8 +306,7 @@ class ilios_client {
      * @return array the token payload as key/value pairs.
      * @throws moodle_exception
      */
-    protected function get_values_from_access_token(string $jwt): array
-    {
+    protected function get_values_from_access_token(string $jwt): array {
         $parts = explode('.', $jwt);
         $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
         if (!$payload) {
