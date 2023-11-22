@@ -55,16 +55,16 @@ class ilios_client {
     }
 
     /**
-     * Get Ilios json object and return PHP object
+     * Queries the Ilios API on a given endpoint, with given filters, sort orders, and size limits.
      *
-     * @param string       $object API object name (camel case)
+     * @param string       $object the API endpoint/entity name
      * @param array|string $filters   e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
      * @param int          $batchSize Number of objects to retrieve per batch.
-     * @return array
+     * @return array a list of retrieved data points
      * @throws moodle_exception
      */
-    public function get(string $object, mixed $filters='', mixed $sortorder='', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function get(string $object, mixed $filters = '', mixed $sortorder = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token();
         $this->curl->resetHeader();
