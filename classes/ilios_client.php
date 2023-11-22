@@ -225,12 +225,12 @@ class ilios_client {
      */
     protected function parse_result(string $str): stdClass {
         if (empty($str)) {
-            throw new moodle_exception('error');
+            throw new moodle_exception('empty response');
         }
         $result = json_decode($str);
 
         if (empty($result)) {
-            throw new moodle_exception('error');
+            throw new moodle_exception('failed to decode response');
         }
 
         if (isset($result->errors)) {
