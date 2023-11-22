@@ -267,10 +267,12 @@ class ilios_client {
     }
 
     /**
+     * @deprecated
      * A method that returns the current access token.
      * @return \stdClass $accesstoken
      */
     public function getAccessToken() {
+        trigger_error('Method ' . __METHOD__ . ' is deprecated', E_USER_DEPRECATED);
         return $this->_accesstoken;
     }
 
