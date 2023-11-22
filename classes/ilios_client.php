@@ -47,16 +47,6 @@ class ilios_client {
     private string $_apibaseurl;
 
     /**
-     * @var string The client ID.
-     */
-    private string $_clientid;
-
-    /**
-     * @var string The client secret.
-     */
-    private string $_clientsecret;
-
-    /**
      * @var stdClass|null the access token wrapper object
      */
     private ?stdClass $_accesstoken;
@@ -67,15 +57,11 @@ class ilios_client {
     /**
      * Constructor.
      * @param string    $hostname
-     * @param string    $clientid
-     * @param string    $clientsecret
      * @param ?stdClass $accesstoken
      */
-    public function __construct(string $hostname, string $clientid = '', string $clientsecret = '', ?stdClass $accesstoken = null) {
+    public function __construct(string $hostname, ?stdClass $accesstoken = null) {
         $this->_hostname = $hostname;
         $this->_apibaseurl = $this->_hostname . self::API_URL;
-        $this->_clientid = $clientid;
-        $this->_clientsecret = $clientsecret;
         $this->_accesstoken = $accesstoken;
         $this->curl = new curl();
     }
