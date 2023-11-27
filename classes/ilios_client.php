@@ -255,7 +255,7 @@ class ilios_client {
         }
 
         // decode token payload. will throw an exception if this fails.
-        $token_payload = $this->get_values_from_access_token($access_token);
+        $token_payload = $this->get_access_token_payload($access_token);
 
         // check if token is expired
         if ($token_payload['exp'] < time()) {
@@ -266,12 +266,12 @@ class ilios_client {
     /**
      * Decodes and retrieves the payload of the given access token.
      *
-     * @param string $jwt the token
+     * @param string $access_token the Ilios API access token
      * @return array the token payload as key/value pairs.
      * @throws moodle_exception
      */
-    protected function get_values_from_access_token(string $jwt): array {
-        $parts = explode('.', $jwt);
+    protected function get_access_token_payload(string $access_token): array {
+        $parts = explode('.', $access_token);
         $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
         if (!$payload) {
             throw new moodle_exception('failed to decode token');
