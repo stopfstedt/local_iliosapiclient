@@ -261,8 +261,6 @@ class ilios_client {
         if ($token_payload['exp'] < time()) {
             throw new moodle_exception('token is expired.');
         }
-
-        // @todo check if token is service-account based - the `tid` attribute must be present.
     }
 
     /**
