@@ -41,10 +41,9 @@ class ilios_client {
 
     /**
      * @param string $ilios_base_url The Ilios base URL
-     * @param string $access_token the Ilios API access token
      * @param curl $curl the cURL client
      */
-    public function __construct(protected string $ilios_base_url, protected string $access_token, protected curl $curl) {
+    public function __construct(protected string $ilios_base_url, protected curl $curl) {
     }
 
     protected function get_api_base_url(): string {
@@ -54,6 +53,7 @@ class ilios_client {
     /**
      * Queries the Ilios API on a given endpoint, with given filters, sort orders, and size limits.
      *
+     * @param string $access_token the Ilios API access token
      * @param string $object the API endpoint/entity name
      * @param array|string $filters e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
@@ -61,12 +61,12 @@ class ilios_client {
      * @return array a list of retrieved data points
      * @throws moodle_exception
      */
-    public function get(string $object, mixed $filters = '', mixed $sortorder = '',
+    public function get(string $access_token, string $object, mixed $filters = '', mixed $sortorder = '',
             int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
-        $this->validate_access_token();
+        $this->validate_access_token($access_token);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->access_token));
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
         $url = $this->get_api_base_url() . '/' . strtolower($object);
         $filterstring = '';
         if (is_array($filters)) {
@@ -123,22 +123,23 @@ class ilios_client {
     /**
      * @deprecated
      */
-    public function getbyid(string $object, mixed $id): mixed {
+    public function getbyid(string $access_token, string $object, mixed $id): mixed {
         trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_id() instead. ', E_USER_DEPRECATED);
-        return $this->get_by_id($object, $id);
+        return $this->get_by_id($access_token, $object, $id);
     }
 
     /**
      * Get Ilios json object by ID and return PHP object.
      *
+     * @param string $access_token the Ilios API access token
      * @param string $object API object name (camel case)
      * @param string|array $id e.g. array(1,2,3)
      * @return mixed
      * @throws moodle_exception
      */
-    public function get_by_id(string $object, mixed $id): mixed {
+    public function get_by_id(string $access_token, string $object, mixed $id): mixed {
         if (is_numeric($id)) {
-            $result = $this->get_by_ids($object, $id, 1);
+            $result = $this->get_by_ids($access_token, $object, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -150,24 +151,25 @@ class ilios_client {
     /**
      * @deprecated
      */
-    public function getbyids(string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function getbyids(string $access_token, string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_ids() instead. ', E_USER_DEPRECATED);
-        return $this->get_by_ids($object, $ids, $batchSize);
+        return $this->get_by_ids($access_token, $object, $ids, $batchSize);
     }
 
     /**
      * Get Ilios json object by IDs and return PHP object.
      *
+     * @param string $access_token the Ilios API access token
      * @param string $object API object name (camel case)
      * @param string|array $ids e.g. array(1,2,3)
      * @param int $batchSize
      * @return array
      * @throws moodle_exception
      */
-    public function get_by_ids(string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
-        $this->validate_access_token();
+    public function get_by_ids(string $access_token, string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+        $this->validate_access_token($access_token);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $this->access_token));
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
         $url = $this->get_api_base_url() . '/' . strtolower($object);
 
         $filterstrings = array();
@@ -242,17 +244,18 @@ class ilios_client {
      * Validates the given access token.
      * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
      *
+     * @param string $access_token the Ilios API access token
      * @return void
      * @throws moodle_exception
      */
-    protected function validate_access_token(): void {
+    protected function validate_access_token(string $access_token): void {
         // check if token is empty
-        if (empty($this->access_token)) {
+        if (empty($access_token)) {
             throw new moodle_exception('access token is not set');
         }
 
         // decode token payload. will throw an exception if this fails.
-        $token_payload = $this->get_values_from_access_token($this->access_token);
+        $token_payload = $this->get_values_from_access_token($access_token);
 
         // check if token is expired
         if ($token_payload['exp'] < time()) {
