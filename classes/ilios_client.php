@@ -40,16 +40,11 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
-     * @var curl the cURL client.
-     */
-    protected curl $curl;
-
-    /**
      * @param string $ilios_base_url The Ilios base URL
      * @param string $access_token the Ilios API access token
+     * @param curl $curl the cURL client
      */
-    public function __construct(protected string $ilios_base_url, protected string $access_token) {
-        $this->curl = new curl();
+    public function __construct(protected string $ilios_base_url, protected string $access_token, protected curl $curl) {
     }
 
     protected function get_api_base_url(): string {
