@@ -249,9 +249,9 @@ class ilios_client {
      * @throws moodle_exception
      */
     protected function validate_access_token(string $access_token): void {
-        // check if token is empty
-        if (empty($access_token)) {
-            throw new moodle_exception('access token is not set');
+        // check if token is blank
+        if ('' === trim($access_token)) {
+            throw new moodle_exception('access token is blank');
         }
 
         // decode token payload. will throw an exception if this fails.
