@@ -272,6 +272,9 @@ class ilios_client {
      */
     protected function get_access_token_payload(string $access_token): array {
         $parts = explode('.', $access_token);
+        if (count($parts) !== 3) {
+            throw new moodle_exception('invalid number of token segments');
+        }
         $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
         if (!$payload) {
             throw new moodle_exception('failed to decode token');
