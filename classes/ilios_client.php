@@ -18,7 +18,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/lib/filelib.php');
 
 /**
- * Ilios API 1.0 Client for using JWT access tokens.
+ * Ilios API client for using JWT access tokens.
  *
  * @package    local_iliosapiclient
  * @author     Carson Tam <carson.tam@ucsf.edu>
