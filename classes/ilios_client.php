@@ -122,14 +122,6 @@ class ilios_client {
     }
 
     /**
-     * @deprecated
-     */
-    public function getbyid(string $access_token, string $object, mixed $id): mixed {
-        trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_id() instead. ', E_USER_DEPRECATED);
-        return $this->get_by_id($access_token, $object, $id);
-    }
-
-    /**
      * Get Ilios json object by ID and return PHP object.
      *
      * @param string $access_token the Ilios API access token
@@ -147,14 +139,6 @@ class ilios_client {
             }
         }
         return null;
-    }
-
-    /**
-     * @deprecated
-     */
-    public function getbyids(string $access_token, string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
-        trigger_error('Method ' . __METHOD__ . ' is deprecated, use ilios_client::get_by_ids() instead. ', E_USER_DEPRECATED);
-        return $this->get_by_ids($access_token, $object, $ids, $batchSize);
     }
 
     /**
