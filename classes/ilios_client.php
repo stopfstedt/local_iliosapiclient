@@ -34,6 +34,7 @@ class ilios_client {
      * @var int
      */
     const DEFAULT_BATCH_SIZE = 1000;
+
     /**
      * @var string Path-prefix to API routes.
      */
@@ -97,7 +98,7 @@ class ilios_client {
             $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
-            if ($obj !== null && isset($obj->$object)) {
+            if (isset($obj->$object)) {
                 if (!empty($obj->$object)) {
                     $retobj = array_merge($retobj, $obj->$object);
                     if (count($obj->$object) < $limit) {
@@ -109,10 +110,10 @@ class ilios_client {
                     $obj = null;
                 }
             } else {
-                if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception('Error ' . $obj->code . ': ' . $obj->message);
+                if (isset($obj->code)) {
+                    throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception(print_r($obj, true));
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $object);
                 }
             }
         } while ($obj !== null);
@@ -201,15 +202,15 @@ class ilios_client {
             //     $retobj = array_merge($retobj, $obj->$object);
             // }
 
-            if ($obj !== null && isset($obj->$object)) {
+            if (isset($obj->$object)) {
                 if (!empty($obj->$object)) {
                     $retobj = array_merge($retobj, $obj->$object);
                 }
             } else {
-                if ($obj !== null && isset($obj->code)) {
-                    throw new moodle_exception('Error ' . $obj->code . ': ' . $obj->message);
+                if (isset($obj->code)) {
+                    throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception("Cannot find $object object in " . print_r($obj, true));
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $object);
                 }
             }
         }
@@ -225,16 +226,21 @@ class ilios_client {
      */
     protected function parse_result(string $str): stdClass {
         if (empty($str)) {
-            throw new moodle_exception('empty response');
+            throw new moodle_exception('erroremptyresponse', 'local_iliosapiclient');
         }
         $result = json_decode($str);
 
         if (empty($result)) {
-            throw new moodle_exception('failed to decode response');
+            throw new moodle_exception('errordecodingresponse', 'local_iliosapiclient');
         }
 
         if (isset($result->errors)) {
-            throw new moodle_exception(print_r($result->errors[0], true));
+            throw new moodle_exception(
+                    'errorresponsewitherror',
+                    'local_iliosapiclient',
+                    '',
+                    print_r($result->errors[0], true)
+            );
         }
 
         return $result;
@@ -251,7 +257,7 @@ class ilios_client {
     protected function validate_access_token(string $access_token): void {
         // check if token is blank
         if ('' === trim($access_token)) {
-            throw new moodle_exception('access token is blank');
+            throw new moodle_exception('erroremptytoken', 'local_iliosapiclient');
         }
 
         // decode token payload. will throw an exception if this fails.
@@ -259,7 +265,7 @@ class ilios_client {
 
         // check if token is expired
         if ($token_payload['exp'] < time()) {
-            throw new moodle_exception('token is expired.');
+            throw new moodle_exception('errortokenexpired', 'local_iliosapiclient');
         }
     }
 
@@ -273,11 +279,11 @@ class ilios_client {
     protected function get_access_token_payload(string $access_token): array {
         $parts = explode('.', $access_token);
         if (count($parts) !== 3) {
-            throw new moodle_exception('invalid number of token segments');
+            throw new moodle_exception('errorinvalidnumbertokensegments', 'local_iliosapiclient');
         }
         $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
         if (!$payload) {
-            throw new moodle_exception('failed to decode token');
+            throw new moodle_exception('errordecodingtoken', 'local_iliosapiclient');
         }
         return $payload;
     }
