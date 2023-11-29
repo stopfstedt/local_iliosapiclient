@@ -1,8 +1,25 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Ilios API client class.
  *
- * @package local_iliosapiclient
+ * @package    local_iliosapiclient
+ * @copyright  The Regents of the University of California
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_iliosapiclient;
@@ -14,7 +31,7 @@ use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-/* @global $CFG */
+/** @global $CFG */
 require_once($CFG->dirroot . '/lib/filelib.php');
 
 /**
@@ -41,38 +58,38 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
-     * @param string $ilios_base_url The Ilios base URL
+     * @param string $iliosbaseurl The Ilios base URL
      * @param curl $curl the cURL client
      */
-    public function __construct(protected string $ilios_base_url, protected curl $curl) {
+    public function __construct(protected string $iliosbaseurl, protected curl $curl) {
     }
 
     protected function get_api_base_url(): string {
-        return $this->ilios_base_url . self::API_URL;
+        return $this->iliosbaseurl . self::API_URL;
     }
 
     /**
      * Queries the Ilios API for data of a given entity type, with given filters, sort orders, and size limits.
      *
-     * @param string $access_token the Ilios API access token
-     * @param string $entity_type the entity type of data to retrieve
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type of data to retrieve
      * @param array|string $filters e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
-     * @param int $batchSize the maximum number of entities to retrieve per batch.
+     * @param int $batchsize the maximum number of entities to retrieve per batch.
      * @return array
      * @throws moodle_exception
      */
     public function get(
-            string $access_token,
-            string $entity_type,
+            string $accesstoken,
+            string $entitytype,
             mixed $filters = '',
             mixed $sortorder = '',
-            int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
 
-        $this->validate_access_token($access_token);
+        $this->validate_access_token($accesstoken);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
-        $url = $this->get_api_base_url() . '/' . strtolower($entity_type);
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
         $filterstring = '';
         if (is_array($filters)) {
             foreach ($filters as $param => $value) {
@@ -92,20 +109,19 @@ class ilios_client {
             }
         }
 
-        $limit = $batchSize;
+        $limit = $batchsize;
         $offset = 0;
         $retobj = array();
-        $obj = null;
 
         do {
             $url .= "?limit=$limit&offset=$offset" . $filterstring;
             $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
-            if (isset($obj->$entity_type)) {
-                if (!empty($obj->$entity_type)) {
-                    $retobj = array_merge($retobj, $obj->$entity_type);
-                    if (count($obj->$entity_type) < $limit) {
+            if (isset($obj->$entitytype)) {
+                if (!empty($obj->$entitytype)) {
+                    $retobj = array_merge($retobj, $obj->$entitytype);
+                    if (count($obj->$entitytype) < $limit) {
                         $obj = null;
                     } else {
                         $offset += $limit;
@@ -117,7 +133,7 @@ class ilios_client {
                 if (isset($obj->code)) {
                     throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entity_type);
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entitytype);
                 }
             }
         } while ($obj !== null);
@@ -128,15 +144,15 @@ class ilios_client {
     /**
      * Retrieves an entity from the API by its ID and type.
      *
-     * @param string $access_token the Ilios API access token
-     * @param string $entity_type the entity type
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type
      * @param mixed $id the entity ID
      * @return mixed
      * @throws moodle_exception
      */
-    public function get_by_id(string $access_token, string $entity_type, mixed $id): mixed {
+    public function get_by_id(string $accesstoken, string $entitytype, mixed $id): mixed {
         if (is_numeric($id)) {
-            $result = $this->get_by_ids($access_token, $entity_type, $id, 1);
+            $result = $this->get_by_ids($accesstoken, $entitytype, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -148,26 +164,26 @@ class ilios_client {
     /**
      * Retrieves entities from the API by their IDs and type.
      *
-     * @param string $access_token the Ilios API access token
-     * @param string $entity_type the entity type
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type
      * @param mixed $ids e.g. a single entity ID, or an array of IDs
-     * @param int $batchSize the maximum number of entities to retrieve per batch.
+     * @param int $batchsize the maximum number of entities to retrieve per batch.
      * @return array
      * @throws moodle_exception
      */
-    public function get_by_ids(string $access_token, string $entity_type, mixed $ids = '',
-            int $batchSize = self::DEFAULT_BATCH_SIZE): array {
-        $this->validate_access_token($access_token);
+    public function get_by_ids(string $accesstoken, string $entitytype, mixed $ids = '',
+            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
+        $this->validate_access_token($accesstoken);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
-        $url = $this->get_api_base_url() . '/' . strtolower($entity_type);
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
 
         $filterstrings = array();
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
         } else if (is_array($ids) && !empty($ids)) {
             $offset = 0;
-            $length = $batchSize;
+            $length = $batchsize;
             $remains = count($ids);
             do {
                 $slicedids = array_slice($ids, $offset, $length);
@@ -187,19 +203,15 @@ class ilios_client {
             $results = $this->curl->get($url . $filterstr);
             $obj = $this->parse_result($results);
 
-            // if ($obj !== null && isset($obj->$object) && !empty($obj->$object)) {
-            //     $retobj = array_merge($retobj, $obj->$object);
-            // }
-
-            if (isset($obj->$entity_type)) {
-                if (!empty($obj->$entity_type)) {
-                    $retobj = array_merge($retobj, $obj->$entity_type);
+            if (isset($obj->$entitytype)) {
+                if (!empty($obj->$entitytype)) {
+                    $retobj = array_merge($retobj, $obj->$entitytype);
                 }
             } else {
                 if (isset($obj->code)) {
                     throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entity_type);
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entitytype);
                 }
             }
         }
@@ -228,7 +240,7 @@ class ilios_client {
                     'errorresponsewitherror',
                     'local_iliosapiclient',
                     '',
-                    print_r($result->errors[0], true)
+                    (string) $result->errors[0],
             );
         }
 
@@ -239,21 +251,21 @@ class ilios_client {
      * Validates the given access token.
      * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
      *
-     * @param string $access_token the Ilios API access token
+     * @param string $accesstoken the Ilios API access token
      * @return void
      * @throws moodle_exception
      */
-    protected function validate_access_token(string $access_token): void {
-        // check if token is blank
-        if ('' === trim($access_token)) {
+    protected function validate_access_token(string $accesstoken): void {
+        // Check if token is blank.
+        if ('' === trim($accesstoken)) {
             throw new moodle_exception('erroremptytoken', 'local_iliosapiclient');
         }
 
-        // decode token payload. will throw an exception if this fails.
-        $token_payload = $this->get_access_token_payload($access_token);
+        // Decode token payload. will throw an exception if this fails.
+        $tokenpayload = $this->get_access_token_payload($accesstoken);
 
-        // check if token is expired
-        if ($token_payload['exp'] < time()) {
+        // Check if token is expired.
+        if ($tokenpayload['exp'] < time()) {
             throw new moodle_exception('errortokenexpired', 'local_iliosapiclient');
         }
     }
@@ -261,12 +273,12 @@ class ilios_client {
     /**
      * Decodes and retrieves the payload of the given access token.
      *
-     * @param string $access_token the Ilios API access token
+     * @param string $accesstoken the Ilios API access token
      * @return array the token payload as key/value pairs.
      * @throws moodle_exception
      */
-    protected function get_access_token_payload(string $access_token): array {
-        $parts = explode('.', $access_token);
+    protected function get_access_token_payload(string $accesstoken): array {
+        $parts = explode('.', $accesstoken);
         if (count($parts) !== 3) {
             throw new moodle_exception('errorinvalidnumbertokensegments', 'local_iliosapiclient');
         }
