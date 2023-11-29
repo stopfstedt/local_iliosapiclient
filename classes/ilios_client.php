@@ -38,8 +38,6 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  * Ilios API client for using JWT access tokens.
  *
  * @package    local_iliosapiclient
- * @author     Carson Tam <carson.tam@ucsf.edu>
- * @author     Stefan Topfstedt <stefan.topfstedt@ucsf.edu>
  * @copyright  The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
