@@ -52,23 +52,27 @@ class ilios_client {
     }
 
     /**
-     * Queries the Ilios API on a given endpoint, with given filters, sort orders, and size limits.
+     * Queries the Ilios API for data of a given entity type, with given filters, sort orders, and size limits.
      *
      * @param string $access_token the Ilios API access token
-     * @param string $object the API endpoint/entity name
+     * @param string $entity_type the entity type of data to retrieve
      * @param array|string $filters e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
-     * @param int $batchSize Number of objects to retrieve per batch.
-     * @return array a list of retrieved data points
+     * @param int $batchSize the maximum number of entities to retrieve per batch.
+     * @return array
      * @throws moodle_exception
      */
-    public function get(string $access_token, string $object, mixed $filters = '', mixed $sortorder = '',
+    public function get(
+            string $access_token,
+            string $entity_type,
+            mixed $filters = '',
+            mixed $sortorder = '',
             int $batchSize = self::DEFAULT_BATCH_SIZE): array {
 
         $this->validate_access_token($access_token);
         $this->curl->resetHeader();
         $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
-        $url = $this->get_api_base_url() . '/' . strtolower($object);
+        $url = $this->get_api_base_url() . '/' . strtolower($entity_type);
         $filterstring = '';
         if (is_array($filters)) {
             foreach ($filters as $param => $value) {
@@ -98,10 +102,10 @@ class ilios_client {
             $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
-            if (isset($obj->$object)) {
-                if (!empty($obj->$object)) {
-                    $retobj = array_merge($retobj, $obj->$object);
-                    if (count($obj->$object) < $limit) {
+            if (isset($obj->$entity_type)) {
+                if (!empty($obj->$entity_type)) {
+                    $retobj = array_merge($retobj, $obj->$entity_type);
+                    if (count($obj->$entity_type) < $limit) {
                         $obj = null;
                     } else {
                         $offset += $limit;
@@ -113,7 +117,7 @@ class ilios_client {
                 if (isset($obj->code)) {
                     throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $object);
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entity_type);
                 }
             }
         } while ($obj !== null);
@@ -122,17 +126,17 @@ class ilios_client {
     }
 
     /**
-     * Get Ilios json object by ID and return PHP object.
+     * Retrieves an entity from the API by its ID and type.
      *
      * @param string $access_token the Ilios API access token
-     * @param string $object API object name (camel case)
-     * @param string|array $id e.g. array(1,2,3)
+     * @param string $entity_type the entity type
+     * @param mixed $id the entity ID
      * @return mixed
      * @throws moodle_exception
      */
-    public function get_by_id(string $access_token, string $object, mixed $id): mixed {
+    public function get_by_id(string $access_token, string $entity_type, mixed $id): mixed {
         if (is_numeric($id)) {
-            $result = $this->get_by_ids($access_token, $object, $id, 1);
+            $result = $this->get_by_ids($access_token, $entity_type, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -142,20 +146,21 @@ class ilios_client {
     }
 
     /**
-     * Get Ilios json object by IDs and return PHP object.
+     * Retrieves entities from the API by their IDs and type.
      *
      * @param string $access_token the Ilios API access token
-     * @param string $object API object name (camel case)
-     * @param string|array $ids e.g. array(1,2,3)
-     * @param int $batchSize
+     * @param string $entity_type the entity type
+     * @param mixed $ids e.g. a single entity ID, or an array of IDs
+     * @param int $batchSize the maximum number of entities to retrieve per batch.
      * @return array
      * @throws moodle_exception
      */
-    public function get_by_ids(string $access_token, string $object, mixed $ids = '', int $batchSize = self::DEFAULT_BATCH_SIZE): array {
+    public function get_by_ids(string $access_token, string $entity_type, mixed $ids = '',
+            int $batchSize = self::DEFAULT_BATCH_SIZE): array {
         $this->validate_access_token($access_token);
         $this->curl->resetHeader();
         $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $access_token));
-        $url = $this->get_api_base_url() . '/' . strtolower($object);
+        $url = $this->get_api_base_url() . '/' . strtolower($entity_type);
 
         $filterstrings = array();
         if (is_numeric($ids)) {
@@ -186,15 +191,15 @@ class ilios_client {
             //     $retobj = array_merge($retobj, $obj->$object);
             // }
 
-            if (isset($obj->$object)) {
-                if (!empty($obj->$object)) {
-                    $retobj = array_merge($retobj, $obj->$object);
+            if (isset($obj->$entity_type)) {
+                if (!empty($obj->$entity_type)) {
+                    $retobj = array_merge($retobj, $obj->$entity_type);
                 }
             } else {
                 if (isset($obj->code)) {
                     throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $object);
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entity_type);
                 }
             }
         }
