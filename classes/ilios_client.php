@@ -1,129 +1,97 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Ilios API client class.
  *
- * @package local_iliosapiclient
+ * @package    local_iliosapiclient
+ * @copyright  The Regents of the University of California
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 namespace local_iliosapiclient;
+
+use curl;
+use Firebase\JWT\JWT;
+use moodle_exception;
+use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-/* @global $CFG */
+/** @global $CFG */
 require_once($CFG->dirroot . '/lib/filelib.php');
 
 /**
- * Ilios API 1.0 Client for using JWT access tokens.
+ * Ilios API client for using JWT access tokens.
  *
  * @package    local_iliosapiclient
- * @author     Carson Tam <carson.tam@ucsf.edu>
- * @copyright  2017 The Regents of the University of California
+ * @copyright  The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class ilios_client extends \curl {
+class ilios_client {
 
     /**
      * Default batch size ("limit") of records to pull per request from the API.
+     *
      * @var int
      */
     const DEFAULT_BATCH_SIZE = 1000;
+
     /**
      * @var string Path-prefix to API routes.
      */
     const API_URL = '/api/v3';
 
     /**
-     * @var string Authentication route path.
+     * @param string $iliosbaseurl The Ilios base URL
+     * @param curl $curl the cURL client
      */
-    const AUTH_URL = '/auth';
+    public function __construct(protected string $iliosbaseurl, protected curl $curl) {
+    }
 
-    /**
-     * @var int The token refresh interval.
-     */
-    const TOKEN_REFRESH_RATE = 86400; // 24 * 60 * 60 = 24 hours
-
-    /**
-     * @var string ISO 8601 formatted TTL for auth token.
-     */
-    const TOKEN_TTL = 'P7D'; // 7 days
-
-    /**
-     * @var string ilios hostname
-     */
-    private $_hostname = '';
-
-    /**
-     * @var string API base URL
-     */
-    private $_apibaseurl = '';
-
-    /**
-     * @var string The client ID.
-     */
-    private $_clientid = '';
-
-    /**
-     * @var string The client secret.
-     */
-    private $_clientsecret = '';
-
-    /**
-     * @var string JWT token
-     */
-    private $_accesstoken = null;
-
-    /**
-     * Constructor.
-     * @param string    $hostname
-     * @param string    $clientid
-     * @param string    $clientsecret
-     * @param \stdClass $accesstoken
-     */
-    public function __construct($hostname, $clientid = '', $clientsecret = '', $accesstoken = null) {
-        parent::__construct();
-        $this->_hostname = $hostname;
-        $this->_apibaseurl = $this->_hostname . self::API_URL;
-        $this->_clientid = $clientid;
-        $this->_clientsecret = $clientsecret;
-
-        if (empty($accesstoken)) {
-            $this->_accesstoken = $this->get_new_token();
-        } else {
-            $this->_accesstoken = $accesstoken;
-        }
+    protected function get_api_base_url(): string {
+        return $this->iliosbaseurl . self::API_URL;
     }
 
     /**
-     * Get Ilios json object and return PHP object
+     * Queries the Ilios API for data of a given entity type, with given filters, sort orders, and size limits.
      *
-     * @param string       $object API object name (camel case)
-     * @param array|string $filters   e.g. array('id' => 3)
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type of data to retrieve
+     * @param array|string $filters e.g. array('id' => 3)
      * @param array|string $sortorder e.g. array('title' => "ASC")
-     * @param int          $batchSize Number of objects to retrieve per batch.
+     * @param int $batchsize the maximum number of entities to retrieve per batch.
      * @return array
-     * @throws \moodle_exception
+     * @throws moodle_exception
      */
-    public function get($object, $filters='', $sortorder='', $batchSize = self::DEFAULT_BATCH_SIZE) {
+    public function get(
+            string $accesstoken,
+            string $entitytype,
+            mixed $filters = '',
+            mixed $sortorder = '',
+            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
 
-        if (empty($this->_accesstoken)) {
-            throw new \moodle_exception( 'Error: client token is not set.' );
-        }
-
-        if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
-            $this->_accesstoken = $this->get_new_token();
-
-            if (empty($this->_accesstoken)) {
-                throw new \moodle_exception( 'Error: unable to renew access token.' );
-            }
-        }
-
-        $token = $this->_accesstoken->token;
-        $this->resetHeader();
-        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
-        $url = $this->_apibaseurl . '/' . strtolower($object);
+        $this->validate_access_token($accesstoken);
+        $this->curl->resetHeader();
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
         $filterstring = '';
         if (is_array($filters)) {
             foreach ($filters as $param => $value) {
-                if (is_array( $value )) {
+                if (is_array($value)) {
                     foreach ($value as $val) {
                         $filterstring .= "&filters[$param][]=$val";
                     }
@@ -135,24 +103,23 @@ class ilios_client extends \curl {
 
         if (is_array($sortorder)) {
             foreach ($sortorder as $param => $value) {
-                $filterstring .="&order_by[$param]=$value";
+                $filterstring .= "&order_by[$param]=$value";
             }
         }
 
-        $limit = $batchSize;
+        $limit = $batchsize;
         $offset = 0;
         $retobj = array();
-        $obj = null;
 
         do {
-            $url .= "?limit=$limit&offset=$offset".$filterstring;
-            $results = parent::get($url);
+            $url .= "?limit=$limit&offset=$offset" . $filterstring;
+            $results = $this->curl->get($url);
             $obj = $this->parse_result($results);
 
-            if ($obj !== null && isset($obj->$object)) {
-                if (!empty($obj->$object)) {
-                    $retobj = array_merge($retobj, $obj->$object);
-                    if (count($obj->$object) < $limit) {
+            if (isset($obj->$entitytype)) {
+                if (!empty($obj->$entitytype)) {
+                    $retobj = array_merge($retobj, $obj->$entitytype);
+                    if (count($obj->$entitytype) < $limit) {
                         $obj = null;
                     } else {
                         $offset += $limit;
@@ -161,10 +128,10 @@ class ilios_client extends \curl {
                     $obj = null;
                 }
             } else {
-                if ($obj !== null && isset($obj->code)) {
-                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message );
+                if (isset($obj->code)) {
+                    throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new \moodle_exception( print_r($obj, true) );
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entitytype);
                 }
             }
         } while ($obj !== null);
@@ -172,17 +139,18 @@ class ilios_client extends \curl {
         return $retobj;
     }
 
-
     /**
-     * Get Ilios json object by ID and return PHP object.
+     * Retrieves an entity from the API by its ID and type.
      *
-     * @param string       $object API object name (camel case)
-     * @param string|array $id e.g. array(1,2,3)
-     * @return array|null
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type
+     * @param mixed $id the entity ID
+     * @return mixed
+     * @throws moodle_exception
      */
-    public function getbyid($object, $id) {
+    public function get_by_id(string $accesstoken, string $entitytype, mixed $id): mixed {
         if (is_numeric($id)) {
-            $result = $this->getbyids($object, $id, 1);
+            $result = $this->get_by_ids($accesstoken, $entitytype, $id, 1);
 
             if (isset($result[0])) {
                 return $result[0];
@@ -192,38 +160,28 @@ class ilios_client extends \curl {
     }
 
     /**
-     * Get Ilios json object by IDs and return PHP object.
+     * Retrieves entities from the API by their IDs and type.
      *
-     * @param string       $object API object name (camel case)
-     * @param string|array $ids e.g. array(1,2,3)
-     * @param int          $batchSize
+     * @param string $accesstoken the Ilios API access token
+     * @param string $entitytype the entity type
+     * @param mixed $ids e.g. a single entity ID, or an array of IDs
+     * @param int $batchsize the maximum number of entities to retrieve per batch.
      * @return array
-     * @throws \moodle_exception
+     * @throws moodle_exception
      */
-    public function getbyids($object, $ids='', $batchSize = self::DEFAULT_BATCH_SIZE) {
-        if (empty($this->_accesstoken)) {
-            throw new \moodle_exception( 'Error' );
-        }
-
-        if (empty($this->_accesstoken->expires) || (time() > $this->_accesstoken->expires)) {
-            $this->_accesstoken = $this->get_new_token();
-
-            if (empty($this->_accesstoken)) {
-                throw new \moodle_exception( 'Error' );
-            }
-        }
-
-        $token = $this->_accesstoken->token;
-        $this->resetHeader();
-        $this->setHeader(array('X-JWT-Authorization: Token ' . $token));
-        $url = $this->_apibaseurl . '/' . strtolower($object);
+    public function get_by_ids(string $accesstoken, string $entitytype, mixed $ids = '',
+            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
+        $this->validate_access_token($accesstoken);
+        $this->curl->resetHeader();
+        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
 
         $filterstrings = array();
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
-        } elseif (is_array($ids) && !empty($ids)) {
-            $offset  = 0;
-            $length  = $batchSize;
+        } else if (is_array($ids) && !empty($ids)) {
+            $offset = 0;
+            $length = $batchsize;
             $remains = count($ids);
             do {
                 $slicedids = array_slice($ids, $offset, $length);
@@ -240,22 +198,18 @@ class ilios_client extends \curl {
 
         $retobj = array();
         foreach ($filterstrings as $filterstr) {
-            $results = parent::get($url.$filterstr);
+            $results = $this->curl->get($url . $filterstr);
             $obj = $this->parse_result($results);
 
-            // if ($obj !== null && isset($obj->$object) && !empty($obj->$object)) {
-            //     $retobj = array_merge($retobj, $obj->$object);
-            // }
-
-            if ($obj !== null && isset($obj->$object)) {
-                if (!empty($obj->$object)) {
-                    $retobj = array_merge($retobj, $obj->$object);
+            if (isset($obj->$entitytype)) {
+                if (!empty($obj->$entitytype)) {
+                    $retobj = array_merge($retobj, $obj->$entitytype);
                 }
             } else {
-                if ($obj !== null && isset($obj->code)) {
-                    throw new \moodle_exception( 'Error '.$obj->code.': '.$obj->message);
+                if (isset($obj->code)) {
+                    throw new moodle_exception('errorresponsewithcodeandmessage', 'local_iliosapiclient', '', $obj);
                 } else {
-                    throw new \moodle_exception( "Cannot find $object object in ".print_r($obj, true) );
+                    throw new moodle_exception('errorresponseentitynotfound', 'local_iliosapiclient', '', $entitytype);
                 }
             }
         }
@@ -263,78 +217,74 @@ class ilios_client extends \curl {
     }
 
     /**
-     * Get new auth token.
-     * @return \stdClass
-     */
-    protected function get_new_token() {
-        $atoken = null;
-
-        // Try refresh the current token first if it is set
-        if (!empty($this->_accesstoken) && !empty($this->_accesstoken->token)) {
-            $this->resetHeader();
-            $this->setHeader(array('X-JWT-Authorization: Token ' . $this->_accesstoken->token));
-
-            $result = parent::get($this->_hostname.self::AUTH_URL.'/token'.'?ttl='.self::TOKEN_TTL);
-            $parsed_result = $this->parse_result($result);
-
-            if (!empty($parsed_result->jwt)) {
-                $atoken = new \stdClass();
-                $atoken->token = $parsed_result->jwt;
-                $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
-            }
-        }
-
-        // If token failed to refresh, use clientid and secret
-        if (empty($atoken) && !empty($this->_clientid)) {
-            $params = array('password' => $this->_clientsecret, 'username' => $this->_clientid);
-            $result = parent::post($this->_hostname . self::AUTH_URL . '/login', $params);
-            $parsed_result = $this->parse_result($result);
-
-            if (!empty($parsed_result->jwt)) {
-                $atoken = new \stdClass();
-                $atoken->token = $parsed_result->jwt;
-                $atoken->expires = time() + self::TOKEN_REFRESH_RATE;
-            }
-        }
-
-        // If we still could not get a new token, just return the current one (or should we return null?)
-        if (empty($atoken)) {
-            return $this->_accesstoken;
-        } else {
-            return $atoken;
-        }
-    }
-
-    /**
      * Decodes and returns the given JSON-encoded input.
      *
      * @param string $str A JSON-encoded string
-     * @return \stdClass The JSON-decoded object representation of the given input.
-     * @throws \moodle_exception
+     * @return stdClass The JSON-decoded object representation of the given input.
+     * @throws moodle_exception
      */
-    protected function parse_result($str) {
+    protected function parse_result(string $str): stdClass {
         if (empty($str)) {
-            throw new \moodle_exception('error');
+            throw new moodle_exception('erroremptyresponse', 'local_iliosapiclient');
         }
         $result = json_decode($str);
 
         if (empty($result)) {
-            throw new \moodle_exception('error');
+            throw new moodle_exception('errordecodingresponse', 'local_iliosapiclient');
         }
 
         if (isset($result->errors)) {
-            throw new \moodle_exception(print_r($result->errors[0],true));
+            throw new moodle_exception(
+                    'errorresponsewitherror',
+                    'local_iliosapiclient',
+                    '',
+                    (string) $result->errors[0],
+            );
         }
 
         return $result;
     }
 
     /**
-     * A method that returns the current access token.
-     * @return \stdClass $accesstoken
+     * Validates the given access token.
+     * Will throw an exception if the token is not valid - that happens if the token is not set, cannot be decoded, or is expired.
+     *
+     * @param string $accesstoken the Ilios API access token
+     * @return void
+     * @throws moodle_exception
      */
-    public function getAccessToken() {
-        return $this->_accesstoken;
+    protected function validate_access_token(string $accesstoken): void {
+        // Check if token is blank.
+        if ('' === trim($accesstoken)) {
+            throw new moodle_exception('erroremptytoken', 'local_iliosapiclient');
+        }
+
+        // Decode token payload. will throw an exception if this fails.
+        $tokenpayload = $this->get_access_token_payload($accesstoken);
+
+        // Check if token is expired.
+        if ($tokenpayload['exp'] < time()) {
+            throw new moodle_exception('errortokenexpired', 'local_iliosapiclient');
+        }
+    }
+
+    /**
+     * Decodes and retrieves the payload of the given access token.
+     *
+     * @param string $accesstoken the Ilios API access token
+     * @return array the token payload as key/value pairs.
+     * @throws moodle_exception
+     */
+    protected function get_access_token_payload(string $accesstoken): array {
+        $parts = explode('.', $accesstoken);
+        if (count($parts) !== 3) {
+            throw new moodle_exception('errorinvalidnumbertokensegments', 'local_iliosapiclient');
+        }
+        $payload = json_decode(JWT::urlsafeB64Decode($parts[1]), true);
+        if (!$payload) {
+            throw new moodle_exception('errordecodingtoken', 'local_iliosapiclient');
+        }
+        return $payload;
     }
 }
 
