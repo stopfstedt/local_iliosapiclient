@@ -31,7 +31,6 @@ use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-/** @global $CFG */
 require_once($CFG->dirroot . '/lib/filelib.php');
 
 /**
@@ -55,12 +54,19 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
+     * Constructor.
+     *
      * @param string $iliosbaseurl The Ilios base URL
      * @param curl $curl the cURL client
      */
     public function __construct(protected string $iliosbaseurl, protected curl $curl) {
     }
 
+    /**
+     * Returns the Ilios API base URL.
+     *
+     * @return string
+     */
     protected function get_api_base_url(): string {
         return $this->iliosbaseurl . self::API_URL;
     }
@@ -70,8 +76,8 @@ class ilios_client {
      *
      * @param string $accesstoken the Ilios API access token
      * @param string $entitytype the entity type of data to retrieve
-     * @param array|string $filters e.g. array('id' => 3)
-     * @param array|string $sortorder e.g. array('title' => "ASC")
+     * @param mixed $filters e.g. array('id' => 3)
+     * @param mixed $sortorder e.g. array('title' => "ASC")
      * @param int $batchsize the maximum number of entities to retrieve per batch.
      * @return array
      * @throws moodle_exception

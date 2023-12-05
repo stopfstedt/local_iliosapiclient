@@ -27,11 +27,17 @@ namespace local_iliosapiclient\privacy;
 use core_privacy\local\metadata\null_provider;
 
 /**
+ * Privacy Subsystem implementing null_provider.
+ *
  * @package   local_iliosapiclient
  * @copyright The Regents of the University of California
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements null_provider {
+
+    /**
+     * {@inheritdoc}
+     */
     public static function get_reason(): string {
         return 'privacy:metadata';
     }

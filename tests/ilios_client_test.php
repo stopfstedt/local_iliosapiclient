@@ -25,6 +25,8 @@ use PHPUnit\Framework\Constraint\StringContains;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
+ * Test coverage for ilios_client class.
+ *
  * @package    local_iliosapiclient
  * @category   test
  * @covers \local_iliosapiclient\ilios_client
@@ -32,22 +34,46 @@ use PHPUnit\Framework\MockObject\MockObject;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class ilios_client_test extends basic_testcase {
+
+    /**
+     * Ilios base URL.
+     */
     public const ILIOS_BASE_URL = 'http://localhost';
+
+    /**
+     * @var MockObject The cURL client mock.
+     */
     protected MockObject $curlmock;
+
+    /**
+     * @var ilios_client The Ilios API client under test.
+     */
     protected ilios_client $iliosclient;
 
+    /**
+     * {@inheritdoc}
+     */
     protected function setUp(): void {
         parent::setUp();
         $this->curl_mock = $this->createMock(curl::class);
         $this->ilios_client = new ilios_client(self::ILIOS_BASE_URL, $this->curl_mock);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function tearDown(): void {
         unset($this->ilios_client);
         unset($this->curl_mock);
         parent::tearDown();
     }
 
+    /**
+     * Tests get() method with default args.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_with_default_arguments(): void {
         $accesstoken = $this->create_access_token();
         $data = [['id' => 100, 'title' => 'lorem ipsum'], ['id' => 101, 'title' => 'foo bar']];
@@ -65,6 +91,12 @@ class ilios_client_test extends basic_testcase {
         $this->assertEquals('foo bar', $result[1]->title);
     }
 
+    /**
+     * Tests get() method with non-default args.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_with_non_default_arguments(): void {
         $accesstoken = $this->create_access_token();
         $data = [[]];
@@ -78,6 +110,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get($accesstoken, 'courses', ['zip' => '1', 'zap' => ['a', 'b']], ['title' => 'DESC'], 3000);
     }
 
+    /**
+     * Tests that get() fails if the response cannot be JSON-decoded.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_fails_on_garbled_response(): void {
         $accesstoken = $this->create_access_token();
         $data = 'g00bleG0bble';
@@ -87,6 +125,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get($accesstoken, 'courses');
     }
 
+    /**
+     * Tests that get() fails if the response is empty.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_fails_on_empty_response(): void {
         $accesstoken = $this->create_access_token();
         $data = '';
@@ -96,6 +140,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get($accesstoken, 'courses');
     }
 
+    /**
+     * Tests that get() fails if the response contains errors.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_fails_on_error_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['errors' => ['something went wrong']];
@@ -105,6 +155,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get($accesstoken, 'courses');
     }
 
+    /**
+     * Tests that get() fails if the response contains code/message pairs in the response.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_fails_on_code_and_message_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['code' => 403, 'message' => 'VERBOTEN!'];
@@ -115,7 +171,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token is expired.
+     *
      * @dataProvider expired_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_fails_with_expired_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -124,7 +184,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token is empty.
+     *
      * @dataProvider empty_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_fails_with_empty_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -133,7 +197,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token cannot be JSON-decoded.
+     *
      * @dataProvider corrupted_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_fails_with_corrupted_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -142,7 +210,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token has the wrong number of segments.
+     *
      * @dataProvider invalid_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_fails_with_invalid_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -150,6 +222,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get($accesstoken, 'does_not_matter');
     }
 
+    /**
+     * Tests get_by_id() method.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id(): void {
         $accesstoken = $this->create_access_token();
         $data = [['id' => 100, 'title' => 'lorem ipsum']];
@@ -164,6 +242,15 @@ class ilios_client_test extends basic_testcase {
         $this->assertEquals('lorem ipsum', $result->title);
     }
 
+    /**
+     * Tests get_by_id() method with empty results.
+     *
+     * @return void
+     * @throws moodle_exception
+     * /
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_with_empty_results(): void {
         $accesstoken = $this->create_access_token();
         $data = [];
@@ -172,11 +259,23 @@ class ilios_client_test extends basic_testcase {
         $this->assertNull($result);
     }
 
+    /**
+     * Tests get_by_id() method with non-numeric ID as input.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_with_non_numeric_id(): void {
         $result = $this->ilios_client->get_by_id('lorem_ipsum', 'does_not_matter', 'a');
         $this->assertNull($result);
     }
 
+    /**
+     * Tests that get_by_id() fails if the response cannot be JSON-decoded.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_fails_on_garbled_response(): void {
         $accesstoken = $this->create_access_token();
         $data = 'g00bleG0bble';
@@ -186,6 +285,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_id($accesstoken, 'courses', 100);
     }
 
+    /**
+     * Tests that get_by_id() fails if the response is empty.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_fails_on_empty_response(): void {
         $accesstoken = $this->create_access_token();
         $data = '';
@@ -195,6 +300,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_id($accesstoken, 'courses', 100);
     }
 
+    /**
+     * Tests that get_by_id() fails if the response contains errors.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_fails_on_error_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['errors' => ['something went wrong']];
@@ -204,6 +315,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_id($accesstoken, 'courses', 100);
     }
 
+    /**
+     * Tests that get_by_id() fails if the response contains code/message pairs in the response.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_id_fails_on_code_and_message_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['code' => 403, 'message' => 'VERBOTEN!'];
@@ -214,7 +331,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_id() fails if the given access token is expired.
+     *
      * @dataProvider expired_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_id_fails_with_expired_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -223,7 +344,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_id() fails if the given access token is empty.
+     *
      * @dataProvider empty_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_id_fails_with_empty_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -232,7 +357,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_id() fails if the given access token cannot be JSON-decoded.
+     *
      * @dataProvider corrupted_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_id_fails_with_corrupted_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -241,7 +370,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token has the wrong number of segments.
+     *
      * @dataProvider invalid_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_id_fails_with_invalid_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -249,6 +382,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_id($accesstoken, 'does_not_matter', 100);
     }
 
+    /**
+     * Tests get_by_ids() method.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids(): void {
         $accesstoken = $this->create_access_token();
         $data = [['id' => 100, 'title' => 'lorem ipsum'], ['id' => 101, 'title' => 'foo bar']];
@@ -266,6 +405,12 @@ class ilios_client_test extends basic_testcase {
         $this->assertEquals('foo bar', $result[1]->title);
     }
 
+    /**
+     * Tests get_by_ids() method in batch mode.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_in_batch_mode(): void {
         $accesstoken = $this->create_access_token();
         $ids = range(1, 120);
@@ -288,12 +433,24 @@ class ilios_client_test extends basic_testcase {
         $this->assertEquals(111, $result[3]->id);
     }
 
+    /**
+     * Tests get_by_ids() method with non-array input.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_with_non_numeric_non_array_input(): void {
         $accesstoken = $this->create_access_token();
         $result = $this->ilios_client->get_by_ids($accesstoken, 'courses', 'abc');
         $this->assertEquals([], $result);
     }
 
+    /**
+     * Tests get_by_ids() with empty results.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_with_empty_results(): void {
         $accesstoken = $this->create_access_token();
         $data = [];
@@ -302,6 +459,12 @@ class ilios_client_test extends basic_testcase {
         $this->assertEquals([], $result);
     }
 
+    /**
+     * Tests that get_by_ids() fails if the response cannot be JSON-decoded.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_fails_on_garbled_response(): void {
         $accesstoken = $this->create_access_token();
         $data = 'g00bleG0bble';
@@ -311,6 +474,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_ids($accesstoken, 'courses', [100]);
     }
 
+    /**
+     * Tests that get_by_ids() fails if the response is empty.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_fails_on_empty_response(): void {
         $accesstoken = $this->create_access_token();
         $data = '';
@@ -320,6 +489,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_ids($accesstoken, 'courses', [100]);
     }
 
+    /**
+     * Tests that get_by_ids() fails if the response contains errors.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_fails_on_error_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['errors' => ['something went wrong']];
@@ -329,6 +504,12 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_ids($accesstoken, 'courses', [100]);
     }
 
+    /**
+     * Tests that get_by_ids() fails if the response contains code/message pairs in the response.
+     *
+     * @return void
+     * @throws moodle_exception
+     */
     public function test_get_by_ids_fails_on_code_and_message_response(): void {
         $accesstoken = $this->create_access_token();
         $data = ['code' => 403, 'message' => 'VERBOTEN!'];
@@ -339,7 +520,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_ids() fails if the given access token is expired.
+     *
      * @dataProvider expired_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_ids_fails_with_expired_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -348,7 +533,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_ids() fails if the given access token is empty.
+     *
      * @dataProvider empty_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_ids_fails_with_empty_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -357,7 +546,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get_by_ids() fails if the given access token cannot be JSON-decoded.
+     *
      * @dataProvider corrupted_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_ids_fails_with_corrupted_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -366,7 +559,11 @@ class ilios_client_test extends basic_testcase {
     }
 
     /**
+     * Tests that get() fails if the given access token has the wrong number of segments.
+     *
      * @dataProvider invalid_token_provider
+     * @param string $accesstoken The API access token.
+     * @return void
      */
     public function test_get_by_ids_fails_with_invalid_token(string $accesstoken): void {
         $this->expectException(moodle_exception::class);
@@ -374,6 +571,11 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_ids($accesstoken, 'does_not_matter', 100);
     }
 
+    /**
+     * Returns empty access tokens.
+     *
+     * @return array[]
+     */
     public static function empty_token_provider(): array {
         return [
                 [''],
@@ -381,12 +583,22 @@ class ilios_client_test extends basic_testcase {
         ];
     }
 
+    /**
+     * Returns "corrupted" access tokens.
+     *
+     * @return array[]
+     */
     public static function corrupted_token_provider(): array {
         return [
                 ['AAAAA.BBBBB.CCCCCC'], // Has the right number of segments, but bunk payload.
         ];
     }
 
+    /**
+     * Returns access tokens with invalid numbers of segments.
+     *
+     * @return array[]
+     */
     public static function invalid_token_provider(): array {
         return [
                 ['AAAA'], // Not enough segments.
@@ -395,6 +607,11 @@ class ilios_client_test extends basic_testcase {
         ];
     }
 
+    /**
+     * Returns expired access tokens.
+     *
+     * @return array[]
+     */
     public static function expired_token_provider(): array {
         $key = 'doesnotmatterhere';
         $payload = ['exp' => (new DateTime('-2 days'))->getTimestamp()];
