@@ -374,20 +374,20 @@ class ilios_client_test extends basic_testcase {
         $this->ilios_client->get_by_ids($accesstoken, 'does_not_matter', 100);
     }
 
-    public function empty_token_provider(): array {
+    public static function empty_token_provider(): array {
         return [
                 [''],
                 ['   '],
         ];
     }
 
-    public function corrupted_token_provider(): array {
+    public static function corrupted_token_provider(): array {
         return [
                 ['AAAAA.BBBBB.CCCCCC'], // Has the right number of segments, but bunk payload.
         ];
     }
 
-    public function invalid_token_provider(): array {
+    public static function invalid_token_provider(): array {
         return [
                 ['AAAA'], // Not enough segments.
                 ['AAAA.BBBBB'], // Still not enough.
@@ -395,7 +395,7 @@ class ilios_client_test extends basic_testcase {
         ];
     }
 
-    public function expired_token_provider(): array {
+    public static function expired_token_provider(): array {
         $key = 'doesnotmatterhere';
         $payload = ['exp' => (new DateTime('-2 days'))->getTimestamp()];
         $jwt = JWT::encode($payload, $key, 'HS256');
