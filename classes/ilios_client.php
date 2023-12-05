@@ -42,7 +42,6 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class ilios_client {
-
     /**
      * Default batch size ("limit") of records to pull per request from the API.
      *
@@ -78,15 +77,16 @@ class ilios_client {
      * @throws moodle_exception
      */
     public function get(
-            string $accesstoken,
-            string $entitytype,
-            mixed $filters = '',
-            mixed $sortorder = '',
-            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
+        string $accesstoken,
+        string $entitytype,
+        mixed $filters = '',
+        mixed $sortorder = '',
+        int $batchsize = self::DEFAULT_BATCH_SIZE
+    ): array {
 
         $this->validate_access_token($accesstoken);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $this->curl->setHeader(['X-JWT-Authorization: Token ' . $accesstoken]);
         $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
         $filterstring = '';
         if (is_array($filters)) {
@@ -109,7 +109,7 @@ class ilios_client {
 
         $limit = $batchsize;
         $offset = 0;
-        $retobj = array();
+        $retobj = [];
 
         do {
             $url .= "?limit=$limit&offset=$offset" . $filterstring;
@@ -169,14 +169,18 @@ class ilios_client {
      * @return array
      * @throws moodle_exception
      */
-    public function get_by_ids(string $accesstoken, string $entitytype, mixed $ids = '',
-            int $batchsize = self::DEFAULT_BATCH_SIZE): array {
+    public function get_by_ids(
+        string $accesstoken,
+        string $entitytype,
+        mixed $ids = '',
+        int $batchsize = self::DEFAULT_BATCH_SIZE
+    ): array {
         $this->validate_access_token($accesstoken);
         $this->curl->resetHeader();
-        $this->curl->setHeader(array('X-JWT-Authorization: Token ' . $accesstoken));
+        $this->curl->setHeader(['X-JWT-Authorization: Token ' . $accesstoken]);
         $url = $this->get_api_base_url() . '/' . strtolower($entitytype);
 
-        $filterstrings = array();
+        $filterstrings = [];
         if (is_numeric($ids)) {
             $filterstrings[] = "?filters[id]=$ids";
         } else if (is_array($ids) && !empty($ids)) {
@@ -196,7 +200,7 @@ class ilios_client {
             } while ($remains > 0);
         }
 
-        $retobj = array();
+        $retobj = [];
         foreach ($filterstrings as $filterstr) {
             $results = $this->curl->get($url . $filterstr);
             $obj = $this->parse_result($results);
@@ -235,10 +239,10 @@ class ilios_client {
 
         if (isset($result->errors)) {
             throw new moodle_exception(
-                    'errorresponsewitherror',
-                    'local_iliosapiclient',
-                    '',
-                    (string) $result->errors[0],
+                'errorresponsewitherror',
+                'local_iliosapiclient',
+                '',
+                (string) $result->errors[0],
             );
         }
 
@@ -287,5 +291,3 @@ class ilios_client {
         return $payload;
     }
 }
-
-

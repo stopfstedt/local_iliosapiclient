@@ -71,9 +71,9 @@ class ilios_client_test extends basic_testcase {
         $this->curl_mock->expects($this->once())
             ->method('get')
             ->with(
-                        self::ILIOS_BASE_URL .
+                self::ILIOS_BASE_URL .
                         '/api/v3/courses?limit=3000&offset=0&filters[zip]=1&filters[zap][]=a&filters[zap][]=b&order_by[title]=DESC'
-                )
+            )
             ->willReturn(json_encode(['courses' => $data]));
         $this->ilios_client->get($accesstoken, 'courses', ['zip' => '1', 'zap' => ['a', 'b']], ['title' => 'DESC'], 3000);
     }
@@ -276,10 +276,10 @@ class ilios_client_test extends basic_testcase {
             ->method('get')
             ->with(new StringContains('limit=50'))
             ->willReturn(
-                        json_encode(['courses' => $data1]),
-                        json_encode(['courses' => $data2]),
-                        json_encode(['courses' => $data3]),
-                );
+                json_encode(['courses' => $data1]),
+                json_encode(['courses' => $data2]),
+                json_encode(['courses' => $data3]),
+            );
         $result = $this->ilios_client->get_by_ids($accesstoken, 'courses', $ids, 50);
         $this->assertCount(4, $result);
         $this->assertEquals(1, $result[0]->id);
@@ -400,7 +400,7 @@ class ilios_client_test extends basic_testcase {
         $payload = ['exp' => (new DateTime('-2 days'))->getTimestamp()];
         $jwt = JWT::encode($payload, $key, 'HS256');
         return [
-                [$jwt]
+                [$jwt],
         ];
     }
 
