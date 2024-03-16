@@ -33,7 +33,7 @@ use PHPUnit\Framework\MockObject\MockObject;
  * @copyright  The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class ilios_client_test extends basic_testcase {
+final class ilios_client_test extends basic_testcase {
 
     /**
      * Ilios base URL.
