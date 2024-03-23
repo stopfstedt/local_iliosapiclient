@@ -23,6 +23,9 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2023112200;
-$plugin->requires  = 2022111800;
+$plugin->version   = 2024032200;
+$plugin->requires  = 2023100400;
+$plugin->release = 'v4.3';
+$plugin->supported = [403, 403];
+$plugin->maturity = MATURITY_STABLE;
 $plugin->component = 'local_iliosapiclient';
