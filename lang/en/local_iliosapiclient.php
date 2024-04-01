@@ -21,8 +21,8 @@
  * @copyright  The Regents of the University of California
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-$string['errordecodingtoken'] = 'Failed to decode API token.';
 $string['errordecodingresponse'] = 'Failed to decode response.';
+$string['errordecodingtoken'] = 'Failed to decode API token.';
 $string['erroremptyresponse'] = 'Empty response.';
 $string['erroremptytoken'] = 'API token is empty.';
 $string['errorinvalidnumbertokensegments'] = 'API token has an incorrect number of segments.';
