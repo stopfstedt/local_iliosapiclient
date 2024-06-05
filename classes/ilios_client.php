@@ -41,10 +41,9 @@ require_once($CFG->dirroot . '/lib/filelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class ilios_client {
+
     /**
-     * Default batch size ("limit") of records to pull per request from the API.
-     *
-     * @var int
+     * @var int Default batch size ("limit") of records to pull per request from the API.
      */
     const DEFAULT_BATCH_SIZE = 1000;
 
@@ -54,12 +53,24 @@ class ilios_client {
     const API_URL = '/api/v3';
 
     /**
+     * @var string The Ilios base URL.
+     */
+    protected string $iliosbaseurl;
+
+    /**
+     * @var curl The cURL client.
+     */
+    protected curl $curl;
+
+    /**
      * Constructor.
      *
      * @param string $iliosbaseurl The Ilios base URL
      * @param curl $curl the cURL client
      */
-    public function __construct(protected string $iliosbaseurl, protected curl $curl) {
+    public function __construct(string $iliosbaseurl, curl $curl) {
+        $this->iliosbaseurl = $iliosbaseurl;
+        $this->curl = $curl;
     }
 
     /**
